@@ -1,4 +1,4 @@
-from fsUtils import isDir, setDir, mkDir
+from fsUtils import isDir, setDir, mkDir, setFile, isFile
 from ioUtils import getFile, saveFile
 from os import getcwd
 
@@ -10,6 +10,7 @@ class discogs():
         self.savepath   = setDir("/Volumes/Music", self.name)
         self.codepath   = getcwd()
         
+        self.createDirectories(debug=True)
 
     def getLocalDir(self):
         return self.localpath
@@ -21,18 +22,20 @@ class discogs():
         return self.savepath        
         
         
-    def createDirectories(self):
+    def createDirectories(self, debug=False):
         if not isDir(self.getSaveDir()):
             print("Warning! Saved Discog Directory {0} is not Available".format(self.getSaveDir()))
             self.savepath = None
         else:
-            print("Saved Discog Directory {0} is Available".format(self.getSaveDir()))
+            if debug:
+                print("Saved Discog Directory {0} is Available".format(self.getSaveDir()))
             
         if not isDir(self.getLocalDir()):
             print("Warning! Local Discog Directory {0} is not Available".format(self.getLocalDir()))
             self.localpath = None
         else:
-            print("Local Discog Directory {0} is Available".format(self.getLocalDir()))
+            if debug:
+                print("Local Discog Directory {0} is Available".format(self.getLocalDir()))
         
         dirnames    = []
         dbdirnames  = []
@@ -54,7 +57,8 @@ class discogs():
                 print("Creating {0}".format(dirname))
                 mkDir(dirname, debug=True)
             else:
-                print("{0} exists".format(dirname))
+                if debug:
+                    print("{0} exists".format(dirname))
 
     
     ###############################################################################
@@ -114,3 +118,44 @@ class discogs():
 
     def getMusicDir(self):
         return self.localpath
+    
+    
+
+
+    ###############################################################################
+    # Discog DB Names
+    ###############################################################################
+    def getDBData(self, dbname):
+        savename = setFile(self.getDiscogDBDir(), "{0}.p".format(dbname))
+        if not isFile(savename):
+            raise ValueError("Could not find {0}".format(savename))
+        data = getFile(savename, debug=True)
+        return data
+        
+    def getArtistNameToIDData(self):
+        return self.getDBData("NameToID")
+        
+    def getArtistNameToIDsData(self):
+        return self.getDBData("NameToIDs")
+        
+    def getArtistIDToNameData(self):
+        return self.getDBData("IDToName")
+        
+    def getArtistRefToIDData(self):
+        return self.getDBData("RefToID")
+        
+    def getArtistIDToRefData(self):
+        return self.getDBData("IDToRef")
+        
+    def getArtistRefToNameData(self):
+        return self.getDBData("RefToName")
+        
+    def getArtistNameToRefData(self):
+        return self.getDBData("NameToRef")
+        
+    def getArtistNameToRefsData(self):
+        return self.getDBData("NameToRefs")
+    
+    def getArtistRefData(self):
+        return self.getDBData("RefCounts")
+    

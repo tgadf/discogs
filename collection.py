@@ -1,10 +1,11 @@
-from fsUtils import setFile, isFile
+from fsUtils import setFile, isFile, setDir, isDir
 from fileUtils import getBasename
 from ioUtils import getFile, saveFile
 from webUtils import getWebData, getHTML
 from searchUtils import findExt, findPattern
 from timeUtils import clock, elapsed, update
 from collections import Counter
+from discogsUtils import discogsUtils
 from math import ceil
 
 class collections():
@@ -339,6 +340,50 @@ class collections():
             artistIDToName[artistID]    = artistName
             artistRefToName[artistRef]  = artistName
 
+            
+            
+
+        nameids = {}
+        namerefs = {}
+        for name,nameid in artistNameToID.items():
+            artist = name
+            if name.endswith(")"):
+                artist = None
+                for x in [-3,-4,-5]:
+                    if artist is not None:
+                        continue
+                    if abs(x) > len(name):
+                        continue
+                    if name[x] == "(":
+                        try:
+                            val = int(name[(x+1):-1])
+                            artist = name[:x].strip()
+                        except:
+                            continue
+
+                if artist is None:
+                    artist = name
+
+            ref = artistNameToRef[name]
+
+            if nameids.get(artist) is None:
+                nameids[artist] = {}
+            nameids[artist][nameid] = 1
+
+            if namerefs.get(artist) is None:
+                namerefs[artist] = {}
+            namerefs[artist][ref] = 1
+
+
+        nameids  = {k: list(v.keys()) for k,v in nameids.items()}
+        namerefs = {k: list(v.keys()) for k,v in namerefs.items()}      
+        
+        savenames = {"NameToIDs": nameids, "NameToRefs": namerefs}
+        for basename,savedata in savenames.items():
+            savename = setFile(self.getDiscogDBDir(), "{0}.p".format(basename))
+            print("Saving {0} entries to {1}".format(len(savedata), savename))
+            saveFile(ifile=savename, idata=savedata, debug=True)      
+
 
         savenames = {"RefCounts": artistRefCounts,
                      "RefToID": artistRefToID, "NameToID": artistNameToID, "NameToRef": artistNameToRef,
@@ -347,6 +392,7 @@ class collections():
             savename = setFile(self.getDiscogDBDir(), "{0}.p".format(basename))
             print("Saving {0} entries to {1}".format(len(savedata), savename))
             saveFile(ifile=savename, idata=savedata, debug=True)
+
             
             
         elapsed(startTime, startCmt)
