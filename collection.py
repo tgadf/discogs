@@ -99,6 +99,109 @@ class collections():
     ###############################################################################
     # Download Collections Files  (2)
     ###############################################################################
+    def getCollectionTypes(self, coltype, top=None, frac=None, N=None):
+        colFile = setFile(col.starterDir, "{0}.txt".format(coltype))
+        data = open(colFile, "r").readlines()
+        data = [x.replace("\n", "") for x in data]
+        names = [" ".join(x.split()[1:]) for x in data]
+        counts = [int(x.split()[0].replace(",", "")) for x in data]
+        
+        if frac is not None:
+            fracs  = [100*x/sum(counts) for x in counts]
+            names = [k for k,v in zip(names, fracs) if v > frac]
+            return names
+        if top is not None:
+            names = [k for k,v in zip(names, counts) if v > top]
+            return genres
+        if N is not None:
+            names = names[:N]
+            return names
+        
+        return names
+    
+    
+    def getGenres(self, top=None, frac=None, N=None):
+        return self.getCollectionTypes("genres", top, frac, N)
+
+    def getCountries(self, top=None, frac=None, N=None):
+        return self.getCollectionTypes("countries", top, frac, N)
+
+    def getStyles(self, top=None, frac=None, N=None):
+        return self.getCollectionTypes("styles", top, frac, N)
+    
+    
+    
+    def downloadCollection(self, maxPages, style=None, genre=None, country=None, year=None, decade=None):
+        from time import sleep 
+        
+        collectionDict = {}
+        collectionDict["Style"]    = "style_exact"
+        collectionDict["Genre"]    = "genre_exact"
+        collectionDict["Country"]  = "country_exact"
+        collectionDict["Decade"]   = "decade"
+        collectionDict["Year"]     = "year"
+        collectionDict["Base"]     = "limit=250&sort=have%2Cdesc&layout=sm"
+        
+        self.discog.searchURL      = "https://www.discogs.com/search/"
+        
+        baseURL = "?{0}".format(collectionDict["Base"])
+
+        val = "-".join([x.replace("/", "") for x in [country, year, decade, genre, style] if x is not None])
+        print(val)
+        
+        
+        subURLs = []
+        if style is not None:
+            subURLs.append("&{0}={1}".format(collectionDict["Style"], urllib.parse.quote(style)))
+        if genre is not None:
+            subURLs.append("&{0}={1}".format(collectionDict["Genre"], urllib.parse.quote(genre)))
+        if country is not None:
+            subURLs.append("&{0}={1}".format(collectionDict["Country"], urllib.parse.quote(country)))
+        if year is not None:
+            subURLs.append("&{0}={1}".format(collectionDict["Year"], urllib.parse.quote(year)))
+        if decade is not None:
+            subURLs.append("&{0}={1}".format(collectionDict["Decade"], urllib.parse.quote(decade)))
+        subURL = "".join(subURLs)
+
+        for page in range(1,maxPages+1):
+            savename = setFile(self.getCollectionsDir(),"{0}-{1}.p".format(val, page))
+            if isFile(savename):
+                continue
+                
+            print("  Trying to download and save {0}".format(savename))
+            
+            url = "{0}{1}{2}&page={3}".format(mainURL, baseURL, subURL, page)            
+            print(url)
+
+
+            user_agent = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.7) Gecko/2009021910 Firefox/3.0.7'
+            headers={'User-Agent':user_agent,} 
+
+            sleep(1)
+            
+            request=urllib.request.Request(url,None,headers) #The assembled request
+            response = urllib.request.urlopen(request)
+            data = response.read() # The data u need
+            
+            print("Saving {0}".format(savename))
+            saveJoblib(data=data, filename=savename, compress=True)
+            sleep(3)
+            
+            
+    def downloadCollectionsByYear(self, year, maxPages, Ncountries=10, Ngenres=10, Nstyles=10):        
+        countries = self.getCountries(N=Ncountries)
+        genres    = self.getGenres(N=Ngenres)
+        styles    = self.getStyles(N=Nstyles)
+
+        for country in countries:
+            for genre in genres:
+                self.downloadCollection(maxPages=maxPages, country=country, style=None, genre=genre, year=year)
+            
+        
+        
+        
+        
+    
     def downloadCollections(self, debug=False):
         collectionsData = self.getCollectionsData()
         if collectionsData is None:
@@ -111,6 +214,8 @@ class collections():
         collectionDict["Base"]     = "limit=250&sort=have%2Cdesc&layout=sm"
         #https://www.discogs.com/search/?sort=have%2Cdesc&layout=sm&page=1&country_exact=US
 
+        #https://www.discogs.com/search/?sort=have%2Cdesc&limit=250&country_exact=US&year=2018&type=master&decade=2010
+        
         baseURL  = u"https://www.discogs.com/search/"
         problems = {}
 
@@ -198,60 +303,52 @@ class collections():
         
         collectionsDBDir  = self.getCollectionsDBDir()
 
-        collectionDB = {}
-        parsed       = {}
-
-
-        pfiles = findPattern(collectionsDBDir, pattern="parsedCollections")
-        print("Found {0} previously parsed collection files".format(len(pfiles)))
-        for ifile in pfiles:
-            for k in getFile(ifile).keys():
-                parsed[k] = 1
-        print("Found {0} previously parsed collections".format(len(parsed)))
+        knownCollectionFilename = setFile(collectionsDBDir, "knownCollections.p")
+        knownCollections = getFile(knownCollectionFilename)        
         
+        pfiles = findPattern(collectionsDBDir, pattern="parsedCollections")
+        print("Found {0} previously parsed saved collections".format(len(pfiles)))
 
-        #print "Looping over",len(files),"files.\n"
-        startVal,startCmt = clock("Parsing Collection Data")
-        nCF = 1
-        for i in range(1,1000):
-            ifile = setFile(collectionsDBDir, "parsedCollections-{0}.p".format(i))
-            if not isFile(ifile):
-                break
-            nCF += 1
+        newFiles = set([getBasename(x) for x in collectionFiles]).difference(set(knownCollections))
+        print("There are {0} new files to precess".format(len(newFiles)))
+
+        
+        if len(newFiles) > 0:
+
+            collectionDB = {}
+            nPC = 0
+        
+            for i,ifile in enumerate(newFiles):
+                print(i,ifile)
+                try:
+                    fullname = setFile(collectionsDir, ifile)
+                    fdata  = getFile(fullname)
+                    bsdata = getHTML(fdata)
+                except:
+                    continue
                 
-        total = len(collectionFiles)
-        for i,ifile in enumerate(collectionFiles):
-            name   = getBasename(ifile)
-            if parsed.get(name):
-                continue
 
-            try:
-                fdata  = getFile(ifile, version=2)
-                bsdata = getHTML(fdata)
-            except:
-                continue
-            #print(bsdata)
-            artistDB = self.parseCollectionFile(bsdata, debug=False, verydebug=False)
-            collectionDB[name] = artistDB
+                artistDB = self.parseCollectionFile(bsdata, debug=False, verydebug=False)
+                collectionDB[ifile] = artistDB
 
-            #if (i+1) % 10 == 0: print "  --> Found",len(artistDB),"after",i+1,"files."
-            
-            if (i+1) % 25 == 0:
-                update(startVal, proc=i+1, total=total)
+                if (i+1) % 250 == 0:
+                    savename = setFile(collectionsDBDir, "parsedCollections-{0}.p".format(len(pfiles)+nPC))
+                    saveFile(ifile=savename, idata=collectionDB, debug=True)
+                    nPC += 1
+                    collectionDB = {}
+                    print("There are {0} currently known files".format(len(knownCollections)))
+                    
+                    knownCollections += list(collectionDB.keys())
+                    saveFile(ifile=knownCollectionFilename, idata=knownCollections, debug=True)
+                    print("There are {0} newly known files".format(len(knownCollections)))
 
-
-            #if (i+1) % 25 == 0: inter(startVal,i+1,len(files))
-
-            if (i+1) % 250 == 0:
-                savename = setFile(collectionsDBDir, "parsedCollections-{0}.p".format(nCF))
+            if len(collectionDB) > 0:
+                savename = setFile(collectionsDBDir, "parsedCollections-{0}.p".format(len(pfiles)+nPC))
                 saveFile(ifile=savename, idata=collectionDB, debug=True)
-                nCF += 1
-                collectionDB = {}
-
-        elapsed(startVal, startCmt)
-
-        savename = setFile(collectionsDBDir, "parsedCollections-{0}.p".format(nCF))
-        saveFile(ifile=savename, idata=collectionDB, debug=True)
+            
+                knownCollections += list(collectionDB.keys())
+                saveFile(ifile=knownCollectionFilename, idata=knownCollections, debug=True)
+                print("There are {0} newly known files".format(len(knownCollections)))
 
         
 
@@ -263,7 +360,7 @@ class collections():
         
         collectionsDBDir = self.getCollectionsDBDir()
         savename = setFile(collectionsDBDir, "mergedParsedCollections.p")
-        if isFile(savename):
+        if isFile(savename) and force is False:            
             print("Merged file {0} already exists. Rerun with force=True".format(savename))
             return
         files = findPattern(collectionsDBDir, pattern="parsedCollections")

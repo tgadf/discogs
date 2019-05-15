@@ -10,6 +10,11 @@ class discogs():
         self.savepath   = setDir("/Volumes/Music", self.name)
         self.codepath   = getcwd()
         
+        self.maxModVal  = 500
+
+        self.discogURL       = "https://www.discogs.com/"        
+        self.discogSearchURL = "https://www.discogs.com/search/"        
+                
         self.createDirectories(debug=True)
 
     def getLocalDir(self):
@@ -43,6 +48,9 @@ class discogs():
         dirnames += ["{0}".format(x) for x in names]
         dirnames += ["{0}-db".format(x) for x in names]
         
+        names = ["artists-extra"]
+        dirnames += ["{0}".format(x) for x in names]
+
         names = ["search", "search-artists"]
         dirnames += ["{0}".format(x) for x in names]
         
@@ -59,6 +67,13 @@ class discogs():
             else:
                 if debug:
                     print("{0} exists".format(dirname))
+
+    
+    ###############################################################################
+    # Artist ModVals
+    ###############################################################################
+    def getMaxModVal(self):
+        return self.maxModVal
 
     
     ###############################################################################
@@ -88,7 +103,7 @@ class discogs():
         return self.dirnames["artists-extra"]
 
     def getArtistsDBDir(self):
-        return self.dbdirnames["artists-db"]
+        return self.dirnames["artists-db"]
 
 
     ###############################################################################
@@ -98,7 +113,7 @@ class discogs():
         return self.dirnames["albums"]
 
     def getAlbumsDBDir(self):
-        return self.dbdirnames["albums-db"]
+        return self.dirnames["albums-db"]
 
 
     ###############################################################################
@@ -156,6 +171,17 @@ class discogs():
     def getArtistNameToRefsData(self):
         return self.getDBData("NameToRefs")
     
-    def getArtistRefData(self):
+    def getArtistRefCountsData(self):
         return self.getDBData("RefCounts")
+        
+    def getKnownArtistIDsData(self):
+        return self.getDBData("KnownArtistIDs")
+        
+    def getToGetData(self):
+        return self.getDBData("ToGet")
+        
+    def getArtistVariationNameToIDsData(self):
+        return self.getDBData("VariationNameToIDs")
+    
+    
     
