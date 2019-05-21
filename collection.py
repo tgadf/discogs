@@ -442,34 +442,17 @@ class collections():
 
         nameids = {}
         namerefs = {}
-        for name,nameid in artistNameToID.items():
-            artist = name
-            if name.endswith(")"):
-                artist = None
-                for x in [-3,-4,-5]:
-                    if artist is not None:
-                        continue
-                    if abs(x) > len(name):
-                        continue
-                    if name[x] == "(":
-                        try:
-                            val = int(name[(x+1):-1])
-                            artist = name[:x].strip()
-                        except:
-                            continue
+        for artist,discID in artistNameToID.items():
+            name  = self.discogsUtils.getArtistName(artist)
+            ref   = artistNameToRef[artist]
 
-                if artist is None:
-                    artist = name
+            if nameids.get(name) is None:
+                nameids[name] = {}
+            nameids[name][discID] = 1
 
-            ref = artistNameToRef[name]
-
-            if nameids.get(artist) is None:
-                nameids[artist] = {}
-            nameids[artist][nameid] = 1
-
-            if namerefs.get(artist) is None:
-                namerefs[artist] = {}
-            namerefs[artist][ref] = 1
+            if namerefs.get(name) is None:
+                namerefs[name] = {}
+            namerefs[name][ref] = 1
 
 
         nameids  = {k: list(v.keys()) for k,v in nameids.items()}

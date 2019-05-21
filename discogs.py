@@ -179,7 +179,7 @@ class discogs():
         
     def getToGetData(self):
         return self.getDBData("ToGet")
-        
+    
     def getArtistVariationNameToIDsData(self):
         return self.getDBData("VariationNameToIDs")
     

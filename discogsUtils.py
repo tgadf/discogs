@@ -11,6 +11,30 @@ class discogsUtils:
     # Artist Functions
     #
     ###############################################################################
+    def getArtistName(self, artist, debug=False):
+        if artist is None:
+            return "None"
+        name = artist
+        if artist.endswith(")"):
+            name = None
+            for x in [-3,-4,-5]:
+                if artist is not None:
+                    continue
+                if abs(x) > len(artist):
+                    continue
+                if artist[x] == "(":
+                    try:
+                        val = int(artist[(x+1):-1])
+                        name = artist[:x].strip()
+                    except:
+                        continue
+
+            if name is None:
+                name = artist
+                
+        return name
+    
+        
     def getArtistID(self, href, debug=False):
         if href is None:
             if debug:
