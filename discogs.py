@@ -1,6 +1,16 @@
 from fsUtils import isDir, setDir, mkDir, setFile, isFile
 from ioUtils import getFile, saveFile
 from os import getcwd
+from discogsUtils import discogsUtils
+from fsUtils import moveFile, moveDir
+from fileUtils import getFileBasics, getBasename, getDirname
+from searchUtils import findExt, findPattern
+from glob import glob
+from os.path import join
+from time import sleep
+
+
+
 
 
 class discogs():
@@ -10,13 +20,26 @@ class discogs():
         self.savepath   = setDir("/Volumes/Music", self.name)
         self.codepath   = getcwd()
         
-        self.maxModVal  = 500
+        self.maxModVal  = 100
 
         self.discogURL       = "https://www.discogs.com/"        
         self.discogSearchURL = "https://www.discogs.com/search/"        
                 
         self.createDirectories(debug=True)
+        
+        self.unitTests()
+        
+    ## Improve upon this later
+    def unitTests(self):
+        ### Various Tests
+        dbfiles = self.getArtistsDBFiles()
+        assert len(dbfiles) == self.getMaxModVal()
+        print("Found {0} artist DB files and that is equal to the max mod value".format(len(dbfiles)))
 
+        
+    def getModValList(self):
+        return list(range(0, self.maxModVal))
+        
     def getLocalDir(self):
         return self.localpath
     
@@ -104,6 +127,10 @@ class discogs():
 
     def getArtistsDBDir(self):
         return self.dirnames["artists-db"]
+    
+    def getArtistsDBFiles(self):
+        dbfiles = findExt(self.getArtistsDBDir(), "*.p")
+        return dbfiles
 
 
     ###############################################################################
@@ -140,42 +167,44 @@ class discogs():
     ###############################################################################
     # Discog DB Names
     ###############################################################################
-    def getDBData(self, dbname):
-        savename = setFile(self.getDiscogDBDir(), "{0}.p".format(dbname))
+    def getDBData(self, dbname, prefix):
+        savename = setFile(self.getDiscogDBDir(), "{0}{1}.p".format(prefix, dbname))
         if not isFile(savename):
             raise ValueError("Could not find {0}".format(savename))
         data = getFile(savename, debug=True)
         return data
         
+        
+    ##################################  Artists ##################################
     def getArtistNameToIDData(self):
-        return self.getDBData("NameToID")
+        return self.getDBData("NameToID", "artist")
         
     def getArtistNameToIDsData(self):
-        return self.getDBData("NameToIDs")
+        return self.getDBData("NameToIDs", "artist")
         
     def getArtistIDToNameData(self):
-        return self.getDBData("IDToName")
+        return self.getDBData("IDToName", "artist")
         
     def getArtistRefToIDData(self):
-        return self.getDBData("RefToID")
+        return self.getDBData("RefToID", "artist")
         
     def getArtistIDToRefData(self):
-        return self.getDBData("IDToRef")
+        return self.getDBData("IDToRef", "artist")
         
     def getArtistRefToNameData(self):
-        return self.getDBData("RefToName")
+        return self.getDBData("RefToName", "artist")
         
     def getArtistNameToRefData(self):
-        return self.getDBData("NameToRef")
+        return self.getDBData("NameToRef", "artist")
         
     def getArtistNameToRefsData(self):
-        return self.getDBData("NameToRefs")
+        return self.getDBData("NameToRefs", "artist")
     
     def getArtistRefCountsData(self):
-        return self.getDBData("RefCounts")
+        return self.getDBData("RefCounts", "artist")
         
     def getKnownArtistIDsData(self):
-        return self.getDBData("KnownArtistIDs")
+        return self.getDBData("KnownArtistIDs", "artist")
         
     def getToGetData(self):
         return self.getDBData("ToGet")
@@ -184,4 +213,115 @@ class discogs():
         return self.getDBData("VariationNameToIDs")
     
     
+    ##################################  Albums ##################################
+    def getAlbumNameToIDData(self):
+        return self.getDBData("NameToID", "album")
     
+    def getAlbumNameToRefData(self):
+        return self.getDBData("NameToRef", "album")
+
+    def getAlbumRefToIDData(self):
+        return self.getDBData("RefToID", "album")
+    
+    def getAlbumRefToNameData(self):
+        return self.getDBData("RefToName", "album")
+
+    def getAlbumIDToNameData(self):
+        return self.getDBData("IDToName", "album")
+    
+    def getAlbumIDToRefData(self):
+        return self.getDBData("IDToRef", "album")
+    
+
+    def getArtistIDCoreAlbumNames(self):
+        return self.getDBData("IDCoreAlbumNames", "artist")
+
+    def getArtistIDAlbumNames(self):
+        return self.getDBData("IDAlbumNames", "artist")
+
+    
+    
+    ###############################################################################
+    # Moving Functions
+    ###############################################################################
+    def moveAlbumFilesToNewModValue(self, newModValue, oldModValue):
+        filedir    = self.getAlbumsDir()
+        dutils     = discogsUtils()
+        for modVal in range(oldModValue):
+            modValue  = dutils.getDiscIDHashMod(discID=modVal, modval=newModValue) #disc.getMaxModVal())
+            if modVal == modValue:
+                sleep(1)
+                continue
+            else:
+                dirs = glob(join(filedir, str(modVal), "*"))
+                print("Moving {0} directories from {1} to {2}".format(len(dirs), modVal, modValue))
+                for idir in dirs:
+                    dname = getDirname(idir)
+                    src = idir
+                    dst = join(filedir, str(modValue), dname)
+                    print(src)
+                    print(dst)
+                    1/0
+                    moveDir(src, dst)
+
+        
+    def moveArtistFilesToNewModValue(self, newModValue, oldModValue):
+        filedir    = self.getArtistsDir()
+        dutils     = discogsUtils()
+        for modVal in range(oldModValue):
+            modValue  = dutils.getDiscIDHashMod(discID=modVal, modval=newModVal) #disc.getMaxModVal())
+            if modVal == modValue:
+                sleep(1)
+                continue
+            else:
+                files = glob(join(filedir, str(modVal), "*.p"))
+                print("Moving {0} files from {1} to {2}".format(len(files), modVal, modValue))
+                for ifile in files:
+                    fbasics = getFileBasics(ifile)
+                    fname = getBasename(ifile)
+                    src = ifile
+                    dst = join(artistsDir, str(modValue), fname)
+                    moveFile(src, dst)
+
+                            
+
+    def moveExtArtistFilesToNewModValue(self, newModVal):
+        artistsDir     = self.getArtistsDir()
+        extArtistsDir  = self.getArtistsExtraDir()
+        dutils         = discogsUtils()
+
+        files = glob(join(extArtistsDir, "*.p"))
+        print("Moving {0} files".format(len(files)))
+        for ifile in files:
+            fbasics   = getFileBasics(ifile)
+            fname     = getBasename(ifile)
+            discID    = fbasics[1].split('-')[0]
+            modValue  = dutils.getDiscIDHashMod(discID=discID, modval=newModVal) #disc.getMaxModVal())
+
+            src = ifile
+            dst = join(artistsDir, str(modValue), fname)
+            moveFile(src, dst)
+
+    def mergeArtistDBs(self):
+        from glob import glob
+        from os.path import join
+
+        artistsDBDir = self.getArtistsDBDir()
+        dutils       = discogsUtils()
+
+        for modVal in self.getModValList():
+            dbdata = {}
+            files = glob(join(artistsDBDir, "old/*.p"))
+            print(modVal,len(files))
+            for ifile in files:
+                fbasics  = getFileBasics(ifile)
+                oldValue = int(fbasics[1].split('-')[0])
+                modValue = dutils.getDiscIDHashMod(discID=oldValue, modval=disc.getMaxModVal())
+                if modValue == modVal:
+                    db = getFile(ifile)
+                    dbdata.update(db)
+
+
+            savename = setFile(artistsDBDir, "{0}-DB.p".format(modVal))     
+            print("Saving {0} artist IDs to {1}".format(len(dbdata), savename))
+            saveJoblib(data=dbdata, filename=savename, compress=True)

@@ -77,7 +77,7 @@ class multiartist:
         return names
 
 
-    def splitArtist(self, result, delims=[",", "&", " And ", "+", "Duet With", "Presents", "Featuring", "/", "With The", " with ", " With ", " y "]):
+    def splitArtist(self, result, delims=[",", "&", " And ", "+", "Duet With", "Presents", "Featuring", "/", "With The", " with ", " With ", " y ", " feat.", " Feat. ", " x ", " X "]):
         #print("Input: {0}".format(result))
         for name in result.keys():
             #print("  Name -->",name,"\tCurrent Value -->",result[name])

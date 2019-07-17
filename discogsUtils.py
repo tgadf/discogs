@@ -88,7 +88,7 @@ class discogsUtils:
 
     def getDiscIDHashMod(self, discID, modval):
         if discID == None:
-            return -1
+            return None
         ival = int(discID)
         return ival % modval
 
