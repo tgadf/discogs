@@ -1,13 +1,15 @@
-from fsUtils import setFile, isFile, setDir, isDir, moveFile
+from fsUtils import setFile, isFile, setDir, isDir, moveFile, removeFile
 from fileUtils import getBasename
 from ioUtils import getFile, saveFile
 from webUtils import getWebData, getHTML
-from searchUtils import findExt, findPattern
+from searchUtils import findExt, findPattern, findPatternExt
 from timeUtils import clock, elapsed, update
 from collections import Counter
 from discogsUtils import discogsUtils
 from math import ceil
 import urllib
+from glob import glob
+from os.path import join
 from artists import artists
 
 class collections():
@@ -267,7 +269,7 @@ class collections():
     ###############################################################################
     # Parse Downloaded Collection Files To Create Master Artist List  (3)
     ###############################################################################
-    def parseCollectionFile(self, bsdata, debug=False, verydebug=False):
+    def parseCollectionFile(self, bsdata, returnDB=False, debug=False, verydebug=False):
         artistDB  = {}
 
         h4s = bsdata.findAll("h4")
@@ -302,6 +304,8 @@ class collections():
         if debug:
             print("Found {0} artists".format(len(artistDB)))
 
+        if returnDB:
+            return artistDB
             
         iArtist = 0
         for href, hrefData in artistDB.items():
@@ -324,32 +328,89 @@ class collections():
         return artistDB
 
 
-    def parseCollections(self, debug=False):
+    def parseCollections(self, debug=False, force=False):
         collectionsDir  = self.getCollectionsDir()
-        collectionFiles = findExt(collectionsDir, ext=".p")
-        print("Found {0} downloaded collection files".format(len(collectionFiles)))
-        for i,ifile in enumerate(collectionFiles):
-            print("Parsing {0}/{1}: {2}".format(i,len(collectionFiles), ifile))
+        collectionsDBDir = self.getCollectionsDBDir()
+
+
+        if force is False:
             try:
-                fdata  = getFile(ifile)
+                savename = setFile(collectionsDBDir, "collectionsKnown.p")
+                parsedCollections = getFile(ifile=savename)
             except:
-                dst = ifile.replace("collections/", "collections/py2/")
-                moveFile(ifile, dst)
-            bsdata = getHTML(fdata)
-            self.parseCollectionFile(bsdata, debug=False, verydebug=False)
-            print("")
+                parsedCollections = {}
+        else:
+            savename = setFile(collectionsDBDir, "collectionsKnown.p")
+            removeFile(savename)
+            parsedCollections = {}
+            
+        
+        if force is False:
+            try:
+                mergers = findPatternExt(collectionsDBDir, pattern="collections-", ext=".p")
+                nDB = len(mergers)
+            except:
+                nDB = 0
+        else:
+            nDB = 0
+            mergers = findPatternExt(collectionsDBDir, pattern="collections-", ext=".p")
+            for merger in mergers:
+                removeFile(merger)
+            
+
+        for py3 in [True,False]:
+            if py3 is True:
+                collectionFiles = findExt(collectionsDir, ext=".p")
+            else:
+                collectionFiles = findExt(setDir(collectionsDir, "py2"), ext=".p")        
+
+            print("Found {0} downloaded collection files".format(len(collectionFiles)))
+
+            artistDB = {}
+            for i,ifile in enumerate(collectionFiles):
+                if parsedCollections.get(ifile) is True:
+                    continue
+                
+                if i % 100 == 0:
+                    print("Parsing {0}/{1}: {2}".format(i,len(collectionFiles), ifile))
+                parsedCollections[ifile] = nDB
+                
+                if py3 is True:
+                    try:
+                        fdata  = getFile(ifile)
+                    except:
+                        dst = ifile.replace("collections/", "collections/py2/")
+                        moveFile(ifile, dst)
+                else:
+                    try:
+                        fdata  = getFile(ifile, version=2)
+                    except:
+                        continue
+                bsdata = getHTML(fdata)
+                colDB = self.parseCollectionFile(bsdata, returnDB=True, debug=False, verydebug=False)
+                artistDB[ifile] = colDB
+
+                if i % 1000 == 0 and i > 0:
+                    savename = setFile(collectionsDBDir, "collections-{0}.p".format(nDB))
+                    print("Saving {0} entries to {1}".format(len(artistDB), savename))
+                    saveFile(ifile=savename, idata=artistDB, debug=True)      
+                    nDB += 1
+                    artistDB = {}
+
+            savename = setFile(collectionsDBDir, "collections-{0}.p".format(nDB))
+            print("Saving {0} entries to {1}".format(len(artistDB), savename))
+            saveFile(ifile=savename, idata=artistDB, debug=True)   
+            nDB += 1   
+            artistDB = {}
+
+        savename = setFile(collectionsDBDir, "collectionsKnown.p")
+        print("Saving {0} collections to {1}".format(len(parsedCollections), savename))
+        saveFile(ifile=savename, idata=parsedCollections, debug=True)      
             
             
 
-    def createCollectionDBs(self, debug=False):
+    def createCollectionDBs(self, debug=True):
         collectionsDBDir = self.getCollectionsDBDir()
-        
-        filename = setFile(collectionsDBDir, "mergedParsedCollections.p")
-        if not isFile(filename):
-            print("Merged file {0} does not exist.".format(filename))
-            return
-        collectionData = getFile(filename, debug=True)
-        print("Found {0} artists from {1}".format(len(collectionData), filename))
 
         ## The DBs
         artistRefCounts = {}
@@ -363,31 +424,40 @@ class collections():
 
         startTime,startCmt = clock("Creating Initial Artist Database")
 
-        for href,hrefData in collectionData.items():
-            num   = hrefData['N']
-            names = hrefData['Names']
+
+        collectionFiles = glob(join(collectionsDBDir, "collections-*.p"))
+
+        hrefs = {}
+        for ifile in collectionFiles:
+            if debug:
+                print(ifile, end=" \t")
+            data = getFile(ifile)
+            for key,results in data.items():
+                for href,hrefData in results.items():
+                    if href.startswith("/artist/") is False:
+                        continue
+                    if hrefs.get(href) is None:
+                        hrefs[href] = {"N": 0, "Name": hrefData["Name"]}
+                    hrefs[href]["N"] += hrefData["N"]
+        
+            print(len(hrefs))
+
             
-            try:
-                artistName = names.most_common(1)[0][0]
-            except:
-                print("Could not extract artist name from {0}".format(names))
-                artistName = None
+        for href,hrefData in hrefs.items():
+            artistRef  = href
+            artistName = hrefData['Name']
+            artistCnts = hrefData['N']
+            artistID   = self.discogsUtils.getArtistID(href)
             
-            artistRef = href
-            artistID  = self.discogsUtils.getArtistID(href)
-            
-            if not all([artistRef, artistID, artistName]):
-                if debug:
-                    print("Not all values are real for {0}".format(href))
-                continue
-            
-            artistRefCounts[artistRef]  = num
+            artistRefCounts[artistRef]  = artistCnts
             artistRefToID[artistRef]    = artistID
             artistNameToID[artistName]  = artistID
             artistIDToRef[artistID]     = artistRef
             artistNameToRef[artistName] = artistRef
             artistIDToName[artistID]    = artistName
             artistRefToName[artistRef]  = artistName
+            
+            
 
             
             
@@ -412,7 +482,7 @@ class collections():
         
         savenames = {"NameToIDs": nameids, "NameToRefs": namerefs}
         for basename,savedata in savenames.items():
-            savename = setFile(self.getDiscogDBDir(), "{0}.p".format(basename))
+            savename = setFile(self.getDiscogDBDir(), "Collection{0}.p".format(basename))
             print("Saving {0} entries to {1}".format(len(savedata), savename))
             saveFile(ifile=savename, idata=savedata, debug=True)      
 
@@ -421,7 +491,7 @@ class collections():
                      "RefToID": artistRefToID, "NameToID": artistNameToID, "NameToRef": artistNameToRef,
                      "IDToRef": artistIDToRef, "IDToName": artistIDToName, "RefToName": artistRefToName}
         for basename,savedata in savenames.items():
-            savename = setFile(self.getDiscogDBDir(), "{0}.p".format(basename))
+            savename = setFile(self.getDiscogDBDir(), "Collection{0}.p".format(basename))
             print("Saving {0} entries to {1}".format(len(savedata), savename))
             saveFile(ifile=savename, idata=savedata, debug=True)
 

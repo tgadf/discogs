@@ -1,27 +1,23 @@
-from fsUtils import setFile, isFile, setDir, isDir, mkDir, mkSubDir
-from fileUtils import getBasename, getBaseFilename
+from fsUtils import setFile, isFile, setDir, isDir, mkDir, mkSubDir, setSubDir, removeFile
+from fileUtils import getBasename, getBaseFilename, getDirBasics, getsize
 from ioUtils import getFile, saveFile, saveJoblib
 from webUtils import getWebData, getHTML, getURL
-from searchUtils import findExt, findPattern
+from searchUtils import findExt, findPattern, findDirs
 from timeUtils import clock, elapsed, update
 from collections import Counter
 from math import ceil
 from time import sleep
-from artist import artist
 from discogsUtils import discogsUtils
-import urllib
-from urllib.parse import quote
+from album import album
 
-class artists():
+class albums():
     def __init__(self, discog, basedir=None):
         self.disc = discog
-        self.name = "artists"
-        
-        self.artist = artist()
+        self.name = "albums"
         
         ## General Imports
         self.getCodeDir          = self.disc.getCodeDir
-        self.getArtistsDir       = self.disc.getArtistsDir
+        self.getAlbumsDir        = self.disc.getAlbumsDir
         self.getArtistsDBDir     = self.disc.getArtistsDBDir
         self.getDiscogDBDir      = self.disc.getDiscogDBDir
         self.discogsUtils        = discogsUtils()
@@ -35,87 +31,11 @@ class artists():
             print("Creating {0}".format(self.starterDir))
             mkDir(self.starterDir, debug=True)
         
-    
-    ###############################################################################
-    # Find Known (Downloaded) Artists (0)
-    ###############################################################################
-    def findKnownArtists(self, debug=False):
-        if debug:
-            print("Finding Known (Downloaded) Artists")
-        artistIDs = []
-        artistDir = self.disc.getArtistsDir()
-        maxModVal = self.disc.getMaxModVal()
-        for i in range(maxModVal):
-            dirVal       = setDir(artistDir, str(i))
-            files        = findExt(dirVal, ext='.p')
-            regArtistIDs = [getBaseFilename(x) for x in files] 
-            artistIDs   += regArtistIDs
-
-            
-        if debug:
-            print("Found {0} artist IDs in {1}".format(len(artistIDs), artistDir))
-            
-        artistDir = self.disc.getArtistsExtraDir()
-        files     = findExt(artistDir, ext='.p')
-        extraArtistIDs = list(set([getBaseFilename(x).split('-')[0] for x in files]))  
-        if debug:
-            print("Found {0} artist IDs in {1}".format(len(extraArtistIDs), artistDir))
-                  
-        artistIDs += extraArtistIDs
         
-        savename = setFile(self.disc.getDiscogDBDir(), "KnownArtistIDs.p")
-        print("Saving {0} known artists to {1}".format(len(artistIDs), savename))
-        saveFile(ifile=savename, idata=artistIDs, debug=True)
-        
-    
-    ###############################################################################
-    # Find Unknown Artists (1)
-    ###############################################################################
-    def findUnknownArtists(self, minVal=0, debug=False):
-        refCounts = Counter(self.disc.getArtistRefCountsData())
-        if debug:
-            print("There are {0} potential artists".format(len(refCounts)))
-        
-        check = {self.discogsUtils.getArtistID(k): k for k,v in refCounts.most_common() if v > minVal}
-        checkSet = set(check.keys())
-        if debug:
-            print("There are {0} potential artists > {1} counts".format(len(checkSet), minVal))
-        
-        knownArtistIDs = self.disc.getKnownArtistIDsData()
-        knownSet = set(knownArtistIDs)
-        if debug:
-            print("There are {0} known artists".format(len(knownSet)))
-
-            
-        toget = {check[k]: k for k in list(checkSet - knownSet)}
-        if debug:
-            print("There are {0} artists > {1} counts".format(len(toget), minVal))
-        
-        savename = setFile(self.disc.getDiscogDBDir(), "ToGet.p")
-        print("Saving {0} known artists to {1}".format(len(toget), savename))
-        saveFile(ifile=savename, idata=toget, debug=True)
-        
-    
-    ###############################################################################
-    # Download Unknown Artists (2)
-    ###############################################################################
-    def getArtistRef(self, artistRef):        
-        baseURL = self.disc.discogURL
-        url     = urllib.parse.urljoin(baseURL, quote(artistRef))
-        return url
-    
-    
-    def getArtistSavename(self, discID):
-        artistDir = self.disc.getArtistsDir()
-        modValue  = self.discogsUtils.getDiscIDHashMod(discID=discID, modval=self.disc.getMaxModVal())
-        if modValue is not None:
-            outdir    = mkSubDir(artistDir, str(modValue))
-            savename  = setFile(outdir, discID+".p")
-            return savename
-        return None
-        
-    
-    def downloadArtistURL(self, url, savename):
+    ######################################################################
+    ### Load Full Artist Data 
+    ######################################################################
+    def downloadAlbumURL(self, url, savename, sleeptime=2.5):
         if isFile(savename):
             return
         
@@ -132,144 +52,132 @@ class artists():
 
         print("Saving {0}".format(savename))
         saveJoblib(data=data, filename=savename, compress=True)
-        print("Done. Sleeping for 2 seconds")
-        sleep(2)
-
+        print("Done. Sleeping for {0} seconds".format(sleeptime))
+        sleep(sleeptime)
         
-    def downloadUnknownArtists(self, forceWrite=False, debug=False):
-        toget     = self.disc.getToGetData()
-        if debug:
-            print("There are {0} artists to download".format(len(toget)))
         
-        for artistRef,discID in toget.items():
-            url      = self.getArtistRef(artistRef)
-            savename = self.getArtistSavename(discID)
-            if isFile(savename) and not forceWrite:
-                continue
-
-            self.downloadArtistURL(url, savename)
+    def downloadAlbumDataData(self, modval, mediaTypes=["Albums"], maxAlbums=None, debug=False):
+        maxModVal = self.modVal
+        
+        albumsDir = self.getAlbumsDir()
+        
+        dbname = setFile(self.getArtistsDBDir(), "{0}-DB.p".format(modval))
+        dbdata = getFile(dbname, version=3)
+        
+        artistModDir = setSubDir(albumsDir, str(modval))
             
+        nArtists = len(dbdata)
+        iArtists = 0
+        for artistID, artistData in dbdata.items():
+            iArtists += 1
+            if artistID in ['712500', '1745000']:
+                continue
+            #retval = {}
+            #retval["Artist"]      = self.getArtistName(bsdata, debug)
+            #retval["URL"]         = self.getArtistURL(bsdata, debug)
+            #retval["ID"]          = self.getArtistDiscID(retval["URL"], debug)
+            #retval["Pages"]       = self.getArtistPages(bsdata, debug)
+            ##retval["Variations"]  = self.getArtistVariations(bsdata, debug)
+            #retval["MediaCounts"] = self.getArtistMediaCounts(bsdata, debug)
+            #retval["Media"]       = self.getArtistMedia(bsdata, debug)
             
-    ################################################################################
-    # Download Search Artist (2a)
-    ################################################################################
-    def searchDiscogForArtist(self, artist, debug=True):
-        if self.prevSearches.get(artist) is not None:
-            return
-        if self.prevSearches.get(artist.upper()) is not None:
-            return
-        self.prevSearches[artist] = True
-        
-        
-        print("\n\n===================== Searching For {0} =====================".format(artist))
-        baseURL = self.disc.discogSearchURL
-        
-        url = urllib.parse.urljoin(baseURL, "{0}{1}{2}".format("?q=", quote(artist), "&limit=250&type=artist"))
-
-        
-        user_agent = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.7) Gecko/2009021910 Firefox/3.0.7'
-        headers={'User-Agent':user_agent,} 
-
-        sleep(1)
-
-        print("Downloading: {0}".format(url))
-
-        request=urllib.request.Request(url,None,headers) #The assembled request
-        response = urllib.request.urlopen(request)
-        data = response.read() # The data u need
-
-        bsdata = getHTML(data)
-        
-        artistDB  = {}
-
-        h4s = bsdata.findAll("h4")
-        
-        for ih4,h4 in enumerate(h4s):
-            spans = h4.findAll("span")
-            ref   = None
-            if len(spans) == 0:
-                ref = h4.find("a")
-            else:
-                ref = spans[0].find("a")
+            print(iArtists,'/',nArtists,'\t:',artistData["ID"],'\t',artistData["Artist"])
+            artistIDDir = setDir(artistModDir, artistID)
+            media = artistData["Media"]
+            for mediaType, mediaTypeData in media.items():
+                if mediaTypes is not None:
+                    if mediaType not in mediaTypes:
+                        continue
+                nget = 0
+                for mediaID, mediaIDData in mediaTypeData.items():
+                    albumName = mediaIDData["Album"]
+                    albumArtist = mediaIDData["Artist"][0][0]
+                    print("\t",mediaID,'\t',albumArtist,'\t',albumName)
+                    savename = setFile(artistIDDir, "{0}.p".format(mediaID))
+                    if isFile(savename):
+                        continue
+                    if maxAlbums is not None:
+                        if nget >= maxAlbums:
+                            break
+     
+                    baseURL = self.disc.discogURL
+                    url = urllib.parse.urljoin(baseURL, quote(mediaIDData["URL"]))                    
+                    self.downloadAlbumURL(url, savename)
                 
-            if ref is None:
-                continue
                 
-            try:
-                href   = ref.attrs.get('href')
-                artist = ref.text.strip()
-            except:
-                print("Could not get artist/href from {0}".format(ref))
-                continue
-                
-            if not href.endswith("?anv="):
-                if artistDB.get(href) is None:
-                    artistDB[href] = {"N": 0, "Name": artist}
-                artistDB[href]["N"] += 1
-                
-        if debug:
-            print("Found {0} artists".format(len(artistDB)))
-                
-        iArtist = 0
-        for href, hrefData in artistDB.items():
-            iArtist += 1
-            if href.startswith("/artist") is False:
-                continue
-        
-            discID   = self.discogsUtils.getArtistID(href)
-            url      = self.getArtistRef(href)
-            savename = self.getArtistSavename(discID)
-
-            print(iArtist,'/',len(artistDB),'\t:',len(discID),'\t',url)
-            if isFile(savename):
-                continue
-
-            self.downloadArtistURL(url, savename)
-                
-            
-
-
 
 
     ################################################################################
-    # Parse Artist Data (3)
+    # Parse Album Data (3)
     ################################################################################
-    def parseArtistFile(ifile):
+    def parseAlbumFile(ifile):
         bsdata     = getHTML(get(ifile))
-        artistData = self.parse(bsdata) 
-        return artistData
+        albumData  = self.parse(bsdata) 
+        return albumData
     
 
-    def parseArtistFiles(self, debug=False):        
-        artistInfo = artist()
+    def parseAlbumFiles(self, debug=False):        
+        albumInfo = album()
 
-        artistDir = self.disc.getArtistsDir()
+        albumDir  = self.disc.getAlbumsDir()
         maxModVal = self.disc.getMaxModVal()
                     
-        artistDBDir = self.disc.getArtistsDBDir()        
+        albumDBDir = self.disc.getAlbumsDBDir()        
         
         totalSaves = 0
-        for i in range(maxModVal):
-            dirVal = setDir(artistDir, str(i))
-            files  = findExt(dirVal, ext='.p')
+        for i in ['NAN'] + list(range(maxModVal)):
             
-            dbname = setFile(artistDBDir, "{0}-DB.p".format(i))            
-            dbdata = getFile(dbname, version=3)
+            start, cmt = clock("Analyzing Modval {0}".format(i))
             
+            dirVal = setDir(albumDir, str(i))
+            print("Looking for artist albums in {0}".format(dirVal))
+            
+            dbname = setFile(albumDBDir, "{0}-DB.p".format(i))
+            if isFile(dbname):
+                dbdata = getFile(dbname, version=3)
+            else:
+                print("DB is empty")
+                dbdata = {}
+            
+            artistDirs = findDirs(dirVal)
+            print("Found {0} artist directories".format(len(artistDirs)))
+
             saveIt = 0
-            for ifile in files:
-                discID = getBaseFilename(ifile)
-                if dbdata.get(discID) is None:
-                    saveIt += 1
-                    info   = artistInfo.getData(ifile)
-                    dbdata[discID] = info
+            for artistDir in artistDirs:
+                artistID = getDirBasics(artistDir)[-1]
+                if dbdata.get(artistID) is None:
+                    dbdata[artistID] = {}
+                
+                files = findExt(artistDir, ext='.p')
+                if len(files) == 0:
+                    continue
+                print("  Found {0: <3} albums ({1: <5}) in {2}".format(len(files), saveIt, artistDir))
+
+                for ifile in files:
+                    if getsize(ifile) < 1000:
+                        removeFile(ifile)
+                        continue
+                    discID = getBaseFilename(ifile)
+                    if dbdata[artistID].get(discID) is None:
+                        try:
+                            saveIt += 1
+                            info   = albumInfo.getData(ifile)
+                            dbdata[artistID][discID] = info
+                        except:
+                            continue
+                    
+
 
             if saveIt > 0:
-                savename = setFile(artistDBDir, "{0}-DB.p".format(i))     
-                print("Saving {0} new artist IDs to {1}".format(saveIt, savename))
+                savename = setFile(albumDBDir, "{0}-DB.p".format(i))     
+                print("Saving {0} new album IDs to {1}".format(saveIt, savename))
                 saveJoblib(data=dbdata, filename=savename, compress=True)
                 totalSaves += saveIt
-            
+                
+            elapsed(start, cmt)
+            sleep(1)
+
+
         print("Saved {0} new artist IDs".format(totalSaves))
         
     
@@ -301,7 +209,6 @@ class artists():
         artistIDAlbumNames     = {}
 
         
-        core = ["Singles & EPs", "Albums", "Compilations"]
         
         
         artistNames = {}
@@ -365,14 +272,14 @@ class artists():
                                 artistNames[varname] = {}
                             artistNames[varname][discID] = 1
 
-                artistID = discID
+
                 artistIDCoreAlbumIDs[artistID] = []
                 artistIDAlbumIDs[artistID]    = []
 
                 media = artistData['Media']
                 if media is not None:
                     for mediaName,mediaData in media.items():
-                        #albumCntr[mediaName] += 1
+                        albumCntr[mediaName] += 1
                         albumKeys = list(mediaData.keys())
                         if mediaName in core:
                             artistIDCoreAlbumIDs[artistID] += albumKeys
@@ -457,7 +364,7 @@ class artists():
         savenames = {"ArtistIDCoreAlbumIDs": artistIDCoreAlbumIDs, "ArtistIDAlbumIDs": artistIDAlbumIDs,
                      "ArtistIDCoreAlbumNames": artistIDCoreAlbumNames, "ArtistIDAlbumNames": artistIDAlbumNames}
         for basename,savedata in savenames.items():
-            savename = setFile(self.getDiscogDBDir(), "{0}.p".format(basename))
+            savename = setFile(disc.getDiscogDBDir(), "{0}.p".format(basename))
             print("Saving {0} entries to {1}".format(len(savedata), savename))
             print("  --> There are {0} albums in this file".format(sum([len(v) for k,v in savedata.items()])))
             saveFile(ifile=savename, idata=savedata, debug=True)
@@ -467,7 +374,7 @@ class artists():
         savenames = {"RefToID": albumRefToID, "NameToID": albumNameToID, "NameToRef": albumNameToRef,
                      "IDToRef": albumIDToRef, "IDToName": albumIDToName, "RefToName": albumRefToName}
         for basename,savedata in savenames.items():
-            savename = setFile(self.getDiscogDBDir(), "Album{0}.p".format(basename))
+            savename = setFile(disc.getDiscogDBDir(), "Album{0}.p".format(basename))
             print("Saving {0} entries to {1}".format(len(savedata), savename))
             saveFile(ifile=savename, idata=savedata, debug=True)
             print("")        

@@ -170,6 +170,8 @@ class discogs():
     def getDBData(self, dbname, prefix):
         savename = setFile(self.getDiscogDBDir(), "{0}{1}.p".format(prefix, dbname))
         if not isFile(savename):
+            data = {}
+            return data
             raise ValueError("Could not find {0}".format(savename))
         data = getFile(savename, debug=True)
         return data
