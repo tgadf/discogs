@@ -7,7 +7,7 @@ from strUtils import fixName
 from math import ceil, floor
 from collections import OrderedDict
 
-from discogs import discogs
+from discogsBase import discogs
 
 class album(discogs):
     def __init__(self):

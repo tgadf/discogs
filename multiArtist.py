@@ -1,6 +1,6 @@
 from searchUtils import findNearest
 
-class multiartist:
+class multiArtist:
     def __init__(self, cutoff=0.9, discdata=None, exact=False):
         self.cutoff   = cutoff    
         self.discdata = discdata

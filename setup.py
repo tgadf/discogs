@@ -3,7 +3,7 @@ import setuptools
 
 setup(
   name = 'discogs',
-  py_modules = ['discogs', 'discogsUtils', 'collection', 'multiArtist', 'artist'],
+  py_modules = ['discogsBase', 'discogsUtils', 'collection', 'multiArtist', 'artist', 'artists', 'album', 'albums'],
   version = '0.0.1',
   description = 'A Python Wrapper for Discogs Data',
   long_description = open('README.md').read(),

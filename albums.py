@@ -143,15 +143,18 @@ class albums():
             print("Found {0} artist directories".format(len(artistDirs)))
 
             saveIt = 0
-            for artistDir in artistDirs:
+            for j,artistDir in enumerate(artistDirs):
                 artistID = getDirBasics(artistDir)[-1]
                 if dbdata.get(artistID) is None:
                     dbdata[artistID] = {}
                 
                 files = findExt(artistDir, ext='.p')
+                if j % 100 == 0 or j == len(artistDirs) - 1:
+                    print("  Found {0: <3} albums ({1: <5}) in {2}/{3}\t{4}".format(len(files), saveIt, j, len(artistDirs), artistDir))
+
                 if len(files) == 0:
                     continue
-                print("  Found {0: <3} albums ({1: <5}) in {2}".format(len(files), saveIt, artistDir))
+                    
 
                 for ifile in files:
                     if getsize(ifile) < 1000:

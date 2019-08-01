@@ -136,7 +136,7 @@ class collections():
     
     
     
-    def downloadCollection(self, maxPages, style=None, genre=None, country=None, year=None, fmat=None, decade=None):
+    def downloadCollection(self, maxPages, style=None, genre=None, country=None, year=None, fmat=None, decade=None, master=False):
         from time import sleep 
         
         collectionDict = {}
@@ -151,26 +151,43 @@ class collections():
         self.discog.searchURL      = "https://www.discogs.com/search/"
         
         baseURL = "?{0}".format(collectionDict["Base"])
+        if master is True:
+            baseURL = "{0}&type=master".format(baseURL)
 
-        val = "-".join([x.replace("/", "") for x in [country, year, decade, genre, style, fmat] if x is not None])
-        print("SaveVal -> {0}".format(val))
-        
-        
+            
         subURLs = []
+        vals    = []
         if style is not None:
-            subURLs.append("&{0}={1}".format(collectionDict["Style"], urllib.parse.quote(style)))
+            if isinstance(style, list):
+                styles = style
+                for style in styles:
+                    subURLs.append("&{0}={1}".format(collectionDict["Style"], urllib.parse.quote(style)))
+                    vals.append(style.replace("/", ""))
+            else:
+                subURLs.append("&{0}={1}".format(collectionDict["Style"], urllib.parse.quote(style)))
+                vals.append(style.replace("/", ""))
+
+
         if genre is not None:
             subURLs.append("&{0}={1}".format(collectionDict["Genre"], urllib.parse.quote(genre)))
+            vals.append(genre)
         if country is not None:
             subURLs.append("&{0}={1}".format(collectionDict["Country"], urllib.parse.quote(country)))
+            vals.append(country)
         if year is not None:
             subURLs.append("&{0}={1}".format(collectionDict["Year"], urllib.parse.quote(year)))
+            vals.append(year)
         if fmat is not None:
             subURLs.append("&{0}={1}".format(collectionDict["Format"], urllib.parse.quote(fmat)))
+            vals.append(fmat)
         if decade is not None:
             subURLs.append("&{0}={1}".format(collectionDict["Decade"], urllib.parse.quote(decade)))
+            vals.append(decade)
+
         subURL = "".join(subURLs)
 
+        val = "-".join(vals)
+        
         for page in range(1,maxPages+1):
             savename = setFile(self.getCollectionsDir(),"{0}-{1}.p".format(val, page))
             if isFile(savename):
@@ -341,9 +358,10 @@ class collections():
                 parsedCollections = {}
         else:
             savename = setFile(collectionsDBDir, "collectionsKnown.p")
-            removeFile(savename)
+            #removeFile(savename)
             parsedCollections = {}
             
+        print("Found {0} known collections.".format(len(parsedCollections)))
         
         if force is False:
             try:
@@ -357,16 +375,22 @@ class collections():
             for merger in mergers:
                 removeFile(merger)
             
+        print("Found {0} previous merged files.".format(len(mergers)))
 
-        for py3 in [True,False]:
+        for py3 in [True, False]:
             if py3 is True:
                 collectionFiles = findExt(collectionsDir, ext=".p")
             else:
                 collectionFiles = findExt(setDir(collectionsDir, "py2"), ext=".p")        
 
-            print("Found {0} downloaded collection files".format(len(collectionFiles)))
-
+            print("Found {0} downloaded collection files for py3={1}".format(len(collectionFiles), py3))
+            
+            newFiles = [x for x in collectionFiles if parsedCollections.get(x) is None]
+            print("Found {0} downloaded collection files not processed.".format(len(newFiles)))
+            
             artistDB = {}
+
+
             for i,ifile in enumerate(collectionFiles):
                 if parsedCollections.get(ifile) is True:
                     continue
@@ -391,11 +415,19 @@ class collections():
                 artistDB[ifile] = colDB
 
                 if i % 1000 == 0 and i > 0:
+                    savename = setFile(collectionsDBDir, "collectionsKnown.p")
+                    print("Saving {0} collections to {1}".format(len(parsedCollections), savename))
+                    saveFile(ifile=savename, idata=parsedCollections, debug=True)    
+
                     savename = setFile(collectionsDBDir, "collections-{0}.p".format(nDB))
                     print("Saving {0} entries to {1}".format(len(artistDB), savename))
                     saveFile(ifile=savename, idata=artistDB, debug=True)      
                     nDB += 1
                     artistDB = {}
+
+            savename = setFile(collectionsDBDir, "collectionsKnown.p")
+            print("Saving {0} collections to {1}".format(len(parsedCollections), savename))
+            saveFile(ifile=savename, idata=parsedCollections, debug=True)    
 
             savename = setFile(collectionsDBDir, "collections-{0}.p".format(nDB))
             print("Saving {0} entries to {1}".format(len(artistDB), savename))

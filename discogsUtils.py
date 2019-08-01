@@ -69,6 +69,20 @@ class discogsUtils:
         return discID
     
     
+    ###############################################################################
+    #
+    # Basic Artist IO Functions
+    #
+    ###############################################################################
+    def getArtistSavename(self, discID):
+        modValue  = self.discogsUtils.getDiscIDHashMod(discID=discID, modval=self.disc.getMaxModVal())
+        if modValue is not None:
+            outdir    = mkSubDir(artistDir, str(modValue))
+            savename  = setFile(outdir, discID+".p")
+            return savename
+        return None
+    
+    
 
     ###############################################################################
     #
