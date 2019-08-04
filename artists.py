@@ -212,6 +212,67 @@ class artists():
         return artistData
     
     
+    def parseArtistModValExtraFiles(self, modVal, force=False, debug=False):
+        print("Parsing Artist Extra Files For ModVal {0}".format(modVal))
+        artistInfo = artist()
+
+        artistDir = self.disc.getArtistsDir()
+        maxModVal = self.disc.getMaxModVal()
+                    
+        artistDBDir = self.disc.getArtistsDBDir()        
+        
+        dirVal = setDir(artistDir, str(modVal))
+        dirVal = setDir(dirVal, "extra")
+        files  = findExt(dirVal, ext='.p')
+        
+        if len(files) == 0:
+            return
+
+        dbname = setFile(artistDBDir, "{0}-DB.p".format(modVal))
+        
+        print("  Loaded ", end="")
+        dbdata = getFile(dbname, version=3)
+        print("{0} artist IDs.".format(len(dbdata)))
+        if force is True:
+            print("Forcing Reloads of ModVal={0}".format(modVal))
+            print("  Processing {0} files.".format(len(files)))
+            dbdata = {}
+
+        saveIt = 0
+        for j,ifile in enumerate(files):
+            if force is True:
+                if j % 250 == 0:
+                    print("\tProcessed {0}/{1} files.".format(j,len(files)))
+                    
+            
+            info     = artistInfo.getData(ifile)
+            artistID = info.ID.ID
+            saveIt  += 1
+
+            media = info.media.media
+            for mediaType,mediaData in media.items():
+                codes = [mediaValues.code for mediaValues in mediaData]
+                #print("Media: {0} \t{1}".format(mediaType, len(codes)), end='\t')
+
+                if dbdata[artistID].media.media.get(mediaType) is None:
+                    dbdata[artistID].media.media[mediaType] = mediaData
+                else:
+                    for mediaValues in mediaData:
+                        if mediaValues.code not in codes:
+                            dbdata[artistID].media.media[mediaType].append(mediaValues)
+
+                codes = [mediaValues.code for mediaValues in dbdata[artistID].media.media[mediaType]]
+                #print("{0}".format(len(codes)))
+
+
+        if saveIt > 0:
+            savename = setFile(artistDBDir, "{0}-DB.p".format(modVal))     
+            print("Saving {0} new artist IDs to {1}".format(saveIt, savename))
+            saveJoblib(data=dbdata, filename=savename, compress=True)
+            
+        return saveIt
+    
+    
     def parseArtistModValFiles(self, modVal, force=False, debug=False):
         print("Parsing Artist Files For ModVal {0}".format(modVal))
         artistInfo = artist()
@@ -451,12 +512,12 @@ class artists():
         artistNames = {}
         artistYears = {}
         artistDBDir = self.disc.getArtistsDBDir()   
-        files       = findExt(artistDBDir, ext='.p')  
+        files       = findExt(artistDBDir, ext='.p')
         for i,ifile in enumerate(files):
             if i % 25 == 0 or i == 5:
                 print(i,'/',len(files),'\t',elapsed(start, cmt))
             db = getFile(ifile)
-            for discID,artistData in db.items():
+            for artistID,artistData in db.items():
                 
                 #if artistIDToName
                 
@@ -465,30 +526,36 @@ class artists():
                 artistName  = self.discogsUtils.getArtistName(artist)
                 artistRef   = artistData.url.url
                 
+                if artist is None or artistName is None or artistRef is None:
+                    continue
+                
                 if artistRefToName.get(artistRef) is None:
                     artistRefToName[artistRef] = artist
                 if artistRefToID.get(artistRef) is None:
-                    artistRefToID[artistRef] = discID
+                    artistRefToID[artistRef] = artistID
                 if artistNameToRef.get(artist) is None:
                     artistNameToRef[artist] = artistRef
                 if artistNameToID.get(artist) is None:
-                    artistNameToID[artist] = discID
-                if artistIDToName.get(discID) is None:
-                    artistIDToName[discID] = artist
-                if artistIDToRef.get(discID) is None:
-                    artistIDToRef[discID] = artistRef
+                    artistNameToID[artist] = artistID
+                if artistIDToName.get(artistID) is None:
+                    artistIDToName[artistID] = artist
+                if artistIDToRef.get(artistID) is None:
+                    artistIDToRef[artistID] = artistRef
 
                 
                 if artistNames.get(artistName) is None:
                     artistNames[artistName] = {}
-                artistNames[artistName][discID] = 1
+                artistNames[artistName][artistID] = 1
+                
 
                     
                 artistVariations = artistData.profile.variations
-                artistMedia      = artistData.media
+                artistMedia      = artistData.media.media
                 if artistMedia is not None:
                     for mediaName,mediaData in artistMedia.items():
-                        for mediaID, mediaValues in mediaData.items():
+                        if not isinstance(mediaData, list):
+                            raise ValueError("MediaData is a {0}".format(type(mediaData)))
+                        for mediaValues in mediaData:
                             year = mediaValues.year
                             try:
                                 year = int(year)
@@ -500,57 +567,56 @@ class artists():
                                 years[0] = min([year, years[0]])
                                 years[1] = max([year, years[1]])
                         
-                if len(artistVariations) > 0:
-                    vardata = artistVariations.values()
-                    for var in vardata:
-                        for varval in var:
-                            varname = varval[0]
-                            if artistNames.get(varname) is None:
-                                artistNames[varname] = {}
-                            artistNames[varname][discID] = 1
+                if artistVariations is not None:
+                    for artistURLData in artistVariations:
+                        varname = artistURLData.name
+                        if artistNames.get(varname) is None:
+                            artistNames[varname] = {}
+                        artistNames[varname][artistID] = 1
 
-                artistID = discID
                 artistIDCoreAlbumIDs[artistID] = []
-                artistIDAlbumIDs[artistID]    = []
+                artistIDAlbumIDs[artistID]     = []
 
-                media = artistData.media
+                media = artistData.media.media
                 if media is not None:
                     for mediaName,mediaData in media.items():
+                        if not isinstance(mediaData, list):
+                            raise ValueError("MediaData is a {0}".format(type(mediaData)))
+                            
+                        albumKeys = [mediaValues.code for mediaValues in mediaData]                            
                         #albumCntr[mediaName] += 1
-                        albumKeys = list(mediaData.keys())
                         if mediaName in core:
                             artistIDCoreAlbumIDs[artistID] += albumKeys
                         artistIDAlbumIDs[artistID] += albumKeys
 
-                        for mediaID, mediaValues in mediaData.items():
-                            for mediaType, mediaTypeData in mediaValues.items():
-                                albumID   = mediaID
-                                albumName = mediaValues.album
-                                albumRef  = mediaValues.url
+                        for mediaValues in mediaData:
+                            albumID   = mediaValues.code
+                            albumName = mediaValues.album
+                            albumRef  = mediaValues.url
 
-                                if albumNameToID.get(albumName) is None:
-                                    albumNameToID[albumName] = {}
-                                albumNameToID[albumName][albumID] = True
+                            if albumNameToID.get(albumName) is None:
+                                albumNameToID[albumName] = {}
+                            albumNameToID[albumName][albumID] = True
 
-                                if albumNameToRef.get(albumName) is None:
-                                    albumNameToRef[albumName] = {}
-                                albumNameToRef[albumName][albumRef] = True
+                            if albumNameToRef.get(albumName) is None:
+                                albumNameToRef[albumName] = {}
+                            albumNameToRef[albumName][albumRef] = True
 
-                                if albumIDToName.get(albumID) is None:
-                                    albumIDToName[albumID] = {}
-                                albumIDToName[albumID][albumName] = True
+                            if albumIDToName.get(albumID) is None:
+                                albumIDToName[albumID] = {}
+                            albumIDToName[albumID][albumName] = True
 
-                                if albumIDToRef.get(albumID) is None:
-                                    albumIDToRef[albumID] = {}
-                                albumIDToRef[albumID][albumRef] = True
+                            if albumIDToRef.get(albumID) is None:
+                                albumIDToRef[albumID] = {}
+                            albumIDToRef[albumID][albumRef] = True
 
-                                if albumRefToName.get(albumRef) is None:
-                                    albumRefToName[albumRef] = {}
-                                albumRefToName[albumRef][albumName] = True
+                            if albumRefToName.get(albumRef) is None:
+                                albumRefToName[albumRef] = {}
+                            albumRefToName[albumRef][albumName] = True
 
-                                if albumRefToID.get(albumRef) is None:
-                                    albumRefToID[albumRef] = {}
-                                albumRefToName[albumRef][albumID] = True
+                            if albumRefToID.get(albumRef) is None:
+                                albumRefToID[albumRef] = {}
+                            albumRefToName[albumRef][albumID] = True
                                                     
                             
 
