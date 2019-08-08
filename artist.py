@@ -409,7 +409,7 @@ class artist(discogs):
     #######################################################################################################################################
     def getArtistProfile(self):        
         result = self.bsdata.find("div", {"class": "profile"})
-        data = {}
+        data   = {}
         if result:
             heads = result.findAll("div", {"class": "head"})
             heads = [x.text for x in heads]

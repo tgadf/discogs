@@ -286,6 +286,57 @@ class collections():
     ###############################################################################
     # Parse Downloaded Collection Files To Create Master Artist List  (3)
     ###############################################################################
+    
+    def parseCollectionFileForAlbums(self, bsdata, returnDB=True, debug=False, verydebug=False):
+        albumDB  = {}
+
+        h4s = bsdata.findAll("h4")
+        for ih4,h4 in enumerate(h4s):
+            refs = h4.findAll("a")
+            if len(refs) == 2:
+                artistData = refs[0]
+                albumData  = refs[1]
+
+
+                ## Album
+                try:
+                    href = albumData.attrs.get('href')
+                    name = albumData.text.strip()
+                except:
+                    print("Could not get album/href from {0}".format(albumData))
+                    href=None
+                    name=None
+
+
+
+                ## Artist
+                try:
+                    artistRef = artistData.attrs.get('href')
+                except:
+                    print("Could not get artist/href from {0}".format(artistData))
+                    artistRef = None
+
+
+                artistID  = self.discogsUtils.getArtistID(artistRef)
+                if artistID is None:
+                    modValue = "NAN"
+                else:
+                    modValue  = self.discogsUtils.getDiscIDHashMod(discID=artistID, modval=self.discog.getMaxModVal())
+
+
+                if all([href,name,modValue]):
+                    if albumDB.get(href) is None:
+                        albumDB[href] = {"N": 0, "Name": name, "Artists": {}}
+                    albumDB[href]["N"] += 1
+                    albumDB[href]["Artists"][artistRef] = True
+
+                    
+        if returnDB:
+            return albumDB
+
+
+
+    
     def parseCollectionFile(self, bsdata, returnDB=False, debug=False, verydebug=False):
         artistDB  = {}
 
@@ -441,6 +492,106 @@ class collections():
             
             
 
+
+    def parseCollectionsForAlbums(self, debug=False, force=False):
+        collectionsDir  = self.getCollectionsDir()
+        collectionsDBDir = self.getCollectionsDBDir()
+
+
+        if force is False:
+            try:
+                savename = setFile(collectionsDBDir, "collectionsKnownAlbums.p")
+                parsedCollections = getFile(ifile=savename)
+            except:
+                parsedCollections = {}
+        else:
+            savename = setFile(collectionsDBDir, "collectionsKnownAlbums.p")
+            #removeFile(savename)
+            parsedCollections = {}
+            
+        print("Found {0} known album collections.".format(len(parsedCollections)))
+        
+        if force is False:
+            try:
+                mergers = findPatternExt(collectionsDBDir, pattern="albums-collections-", ext=".p")
+                nDB = len(mergers)
+            except:
+                nDB = 0
+        else:
+            nDB = 0
+            mergers = findPatternExt(collectionsDBDir, pattern="albums-collections-", ext=".p")
+            for merger in mergers:
+                removeFile(merger)
+            mergers = []
+            
+        print("Found {0} previous merged files.".format(len(mergers)))
+
+        for py3 in [True, False]:
+            if py3 is True:
+                collectionFiles = findExt(collectionsDir, ext=".p")
+            else:
+                collectionFiles = findExt(setDir(collectionsDir, "py2"), ext=".p")        
+
+            print("Found {0} downloaded collection files for py3={1}".format(len(collectionFiles), py3))
+            
+            newFiles = [x for x in collectionFiles if parsedCollections.get(x) is None]
+            print("Found {0} downloaded collection files not processed.".format(len(newFiles)))
+            
+            albumDB = {}
+
+
+            for i,ifile in enumerate(collectionFiles):
+                if parsedCollections.get(ifile) is True:
+                    continue
+                
+                if i % 100 == 0:
+                    print("Parsing {0}/{1}: {2}".format(i,len(collectionFiles), ifile))
+                parsedCollections[ifile] = nDB
+                
+                if py3 is True:
+                    try:
+                        fdata  = getFile(ifile)
+                    except:
+                        dst = ifile.replace("collections/", "collections/py2/")
+                        moveFile(ifile, dst)
+                else:
+                    try:
+                        fdata  = getFile(ifile, version=2)
+                    except:
+                        continue
+                bsdata = getHTML(fdata)
+                colDB = self.parseCollectionFileForAlbums(bsdata, returnDB=True)
+                albumDB[ifile] = colDB
+
+                if i % 1000 == 0 and i > 0:
+                    savename = setFile(collectionsDBDir, "collectionsKnownAlbums.p")
+                    print("Saving {0} collections to {1}".format(len(parsedCollections), savename))
+                    saveFile(ifile=savename, idata=parsedCollections, debug=True)    
+
+                    savename = setFile(collectionsDBDir, "albums-collections-{0}.p".format(nDB))
+                    print("Saving {0} entries to {1}".format(len(albumDB), savename))
+                    saveFile(ifile=savename, idata=albumDB, debug=True)      
+                    nDB += 1                    
+                    albumDB = {}
+
+                    
+            if len(albumDB) > 0:
+                savename = setFile(collectionsDBDir, "collectionsKnownAlbums.p")
+                print("Saving {0} collections to {1}".format(len(parsedCollections), savename))
+                saveFile(ifile=savename, idata=parsedCollections, debug=True)    
+
+                savename = setFile(collectionsDBDir, "albums-collections-{0}.p".format(nDB))
+                print("Saving {0} entries to {1}".format(len(albumDB), savename))
+                saveFile(ifile=savename, idata=albumDB, debug=True)   
+                nDB += 1   
+                albumDB = {}
+
+        savename = setFile(collectionsDBDir, "collectionsKnownAlbums.p")
+        print("Saving {0} collections to {1}".format(len(parsedCollections), savename))
+        saveFile(ifile=savename, idata=parsedCollections, debug=True)      
+                        
+            
+
     def createCollectionDBs(self, debug=True):
         collectionsDBDir = self.getCollectionsDBDir()
 
@@ -524,6 +675,55 @@ class collections():
                      "IDToRef": artistIDToRef, "IDToName": artistIDToName, "RefToName": artistRefToName}
         for basename,savedata in savenames.items():
             savename = setFile(self.getDiscogDBDir(), "Collection{0}.p".format(basename))
+            print("Saving {0} entries to {1}".format(len(savedata), savename))
+            saveFile(ifile=savename, idata=savedata, debug=True)
+
+            
+            
+        elapsed(startTime, startCmt)     
+                        
+            
+
+    def createCollectionDBsForAlbums(self, debug=True):
+        collectionsDBDir = self.getCollectionsDBDir()
+
+        ## The DBs
+        albumRefCounts  = {}
+        albumRefArtists = {}
+
+
+        startTime,startCmt = clock("Creating Initial Album Database")
+
+        collectionFiles = glob(join(collectionsDBDir, "albums-collections-*.p"))
+
+        hrefs = {}
+        for ifile in collectionFiles:
+            if debug:
+                print(ifile, end=" \t")
+            data = getFile(ifile)
+            for key,result in data.items():
+                for href,hrefData in result.items():
+                    if hrefs.get(href) is None:
+                        hrefs[href] = {"N": 0, "Name": hrefData["Name"], "Artists": {}}
+                    hrefs[href]["N"] += hrefData["N"]
+                    hrefs[href]["Artists"].update(hrefData["Artists"])
+                    
+            print(len(hrefs))
+
+                    
+        for href,hrefData in hrefs.items():
+            albumRef     = href
+            albumName    = hrefData['Name']
+            albumCnts    = hrefData['N']
+            albumArtists = list(hrefData["Artists"].keys())
+            
+            albumRefCounts[albumRef]  = albumCnts
+            albumRefArtists[albumRef] = albumArtists
+
+
+        savenames = {"RefCounts": albumRefCounts, "RefArtists": albumRefArtists}
+        for basename,savedata in savenames.items():
+            savename = setFile(self.getDiscogDBDir(), "CollectionAlbum{0}.p".format(basename))
             print("Saving {0} entries to {1}".format(len(savedata), savename))
             saveFile(ifile=savename, idata=savedata, debug=True)
 

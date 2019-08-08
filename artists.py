@@ -110,6 +110,10 @@ class artists():
                 removeFile(savename)
                 savename = self.getArtistSavename(ID)
                 print("  File ID != Artist ID. Renaming to {0}".format(savename))
+                
+            
+        if force is False and isFile(savename):
+            return True
             
             
         if debug:
@@ -119,8 +123,12 @@ class artists():
             print("Done. Sleeping for 2 seconds")
         sleep(2)
         
-        return True
-            
+        if isFile(savename):
+            return True
+        else:
+            return False
+        
+        
             
     ################################################################################
     # Download Search Artist (2a)
@@ -472,25 +480,28 @@ class artists():
     ################################################################################
     # Collect Metadata About Artists (4)
     ################################################################################
-    def buildMetadata(self, force=False):
+    def buildMetadata(self, force=False, doAlbums=False):
         start, cmt = clock("Building Artist Metadata DB")
         
         if force is False:
-            artistNameToID   = self.disc.getArtistNameToIDData()
-            artistNameToIDs  = self.disc.getArtistNameToIDsData()
-            artistIDToName   = self.disc.getArtistIDToNameData()        
-            artistRefToID    = self.disc.getArtistRefToIDData()
-            artistIDToRef    = self.disc.getArtistIDToRefData()
-            artistRefToName  = self.disc.getArtistRefToNameData()
-            artistNameToRef  = self.disc.getArtistNameToRefData()
+            artistNameToID    = self.disc.getArtistNameToIDData()
+            artistNameToIDs   = self.disc.getArtistNameToIDsData()
+            artistIDToName    = self.disc.getArtistIDToNameData()        
+            artistRefToID     = self.disc.getArtistRefToIDData()
+            artistIDToRef     = self.disc.getArtistIDToRefData()
+            artistRefToName   = self.disc.getArtistRefToNameData()
+            artistNameToRef   = self.disc.getArtistNameToRefData()
+            artistNamesToName = {}
+
         else:
-            artistNameToID   = {}
-            artistNameToIDs  = {}
-            artistIDToName   = {}
-            artistRefToID    = {}
-            artistIDToRef    = {}
-            artistRefToName  = {}
-            artistNameToRef  = {}
+            artistNameToID    = {}
+            artistNameToIDs   = {}
+            artistIDToName    = {}
+            artistRefToID     = {}
+            artistIDToRef     = {}
+            artistRefToName   = {}
+            artistNameToRef   = {}
+            artistNamesToName = {}
             
 
         albumNameToID   = {}
@@ -547,6 +558,9 @@ class artists():
                     artistNames[artistName] = {}
                 artistNames[artistName][artistID] = 1
                 
+                if artistNamesToName.get(artistName) is None:
+                    artistNamesToName[artistName] = set()
+                artistNamesToName[artistName].add(artistName)
 
                     
                 artistVariations = artistData.profile.variations
@@ -573,50 +587,56 @@ class artists():
                         if artistNames.get(varname) is None:
                             artistNames[varname] = {}
                         artistNames[varname][artistID] = 1
+                        if artistNamesToName.get(varname) is None:
+                            artistNamesToName[varname] = set()
+                        artistNamesToName[varname].add(artistName)
 
-                artistIDCoreAlbumIDs[artistID] = []
-                artistIDAlbumIDs[artistID]     = []
+                        
+                ##### Albums For Artists #####
+                if doAlbums:
+                    artistIDCoreAlbumIDs[artistID] = []
+                    artistIDAlbumIDs[artistID]     = []
 
-                media = artistData.media.media
-                if media is not None:
-                    for mediaName,mediaData in media.items():
-                        if not isinstance(mediaData, list):
-                            raise ValueError("MediaData is a {0}".format(type(mediaData)))
-                            
-                        albumKeys = [mediaValues.code for mediaValues in mediaData]                            
-                        #albumCntr[mediaName] += 1
-                        if mediaName in core:
-                            artistIDCoreAlbumIDs[artistID] += albumKeys
-                        artistIDAlbumIDs[artistID] += albumKeys
+                    media = artistData.media.media
+                    if media is not None:
+                        for mediaName,mediaData in media.items():
+                            if not isinstance(mediaData, list):
+                                raise ValueError("MediaData is a {0}".format(type(mediaData)))
 
-                        for mediaValues in mediaData:
-                            albumID   = mediaValues.code
-                            albumName = mediaValues.album
-                            albumRef  = mediaValues.url
+                            albumKeys = [mediaValues.code for mediaValues in mediaData]                            
+                            #albumCntr[mediaName] += 1
+                            if mediaName in core:
+                                artistIDCoreAlbumIDs[artistID] += albumKeys
+                            artistIDAlbumIDs[artistID] += albumKeys
 
-                            if albumNameToID.get(albumName) is None:
-                                albumNameToID[albumName] = {}
-                            albumNameToID[albumName][albumID] = True
+                            for mediaValues in mediaData:
+                                albumID   = mediaValues.code
+                                albumName = mediaValues.album
+                                albumRef  = mediaValues.url
 
-                            if albumNameToRef.get(albumName) is None:
-                                albumNameToRef[albumName] = {}
-                            albumNameToRef[albumName][albumRef] = True
+                                if albumNameToID.get(albumName) is None:
+                                    albumNameToID[albumName] = {}
+                                albumNameToID[albumName][albumID] = True
 
-                            if albumIDToName.get(albumID) is None:
-                                albumIDToName[albumID] = {}
-                            albumIDToName[albumID][albumName] = True
+                                if albumNameToRef.get(albumName) is None:
+                                    albumNameToRef[albumName] = {}
+                                albumNameToRef[albumName][albumRef] = True
 
-                            if albumIDToRef.get(albumID) is None:
-                                albumIDToRef[albumID] = {}
-                            albumIDToRef[albumID][albumRef] = True
+                                if albumIDToName.get(albumID) is None:
+                                    albumIDToName[albumID] = {}
+                                albumIDToName[albumID][albumName] = True
 
-                            if albumRefToName.get(albumRef) is None:
-                                albumRefToName[albumRef] = {}
-                            albumRefToName[albumRef][albumName] = True
+                                if albumIDToRef.get(albumID) is None:
+                                    albumIDToRef[albumID] = {}
+                                albumIDToRef[albumID][albumRef] = True
 
-                            if albumRefToID.get(albumRef) is None:
-                                albumRefToID[albumRef] = {}
-                            albumRefToName[albumRef][albumID] = True
+                                if albumRefToName.get(albumRef) is None:
+                                    albumRefToName[albumRef] = {}
+                                albumRefToName[albumRef][albumName] = True
+
+                                if albumRefToID.get(albumRef) is None:
+                                    albumRefToID[albumRef] = {}
+                                albumRefToName[albumRef][albumID] = True
                                                     
                             
 
@@ -630,61 +650,68 @@ class artists():
                                                         
         for artistName in artistNames.keys():
             artistNames[artistName] = list(artistNames[artistName].keys())
+                        
+        for varName in artistNamesToName.keys():
+            artistNamesToName[varName] = list(artistNamesToName[varName])
                             
         savename = setFile(self.disc.getDiscogDBDir(), "ArtistVariationNameToIDs.p")
         print("Saving {0} known artists to {1}".format(len(artistNames), savename))
         saveFile(ifile=savename, idata=artistNames, debug=True)
 
         
+        from string import ascii_uppercase, digits, punctuation
+        vals = "{0}{1}{2}".format(ascii_uppercase, digits, punctuation)
+        asciiToName = {val: [x for x in artistNames.keys() if (x.startswith(val) or x.startswith(val.lower()))] for val in vals}
+        savename = setFile(self.disc.getDiscogDBDir(), "ArtistAsciiNames.p")
+        print("Saving {0} known artists ascii characters to {1}".format(len(asciiToName), savename))
+        saveFile(ifile=savename, idata=asciiToName, debug=True)
+
+
         
+        if doAlbums:
+            artistIDCoreAlbumNames = {}
+            for artistID,albumIDs in artistIDCoreAlbumIDs.items():
+                artistIDCoreAlbumNames[artistID] = []
+                for albumID in albumIDs:
+                    albumNames = albumIDToName[albumID]
+                    artistIDCoreAlbumNames[artistID] += albumNames
 
-        artistIDCoreAlbumNames = {}
-        for artistID,albumIDs in artistIDCoreAlbumIDs.items():
-            artistIDCoreAlbumNames[artistID] = []
-            for albumID in albumIDs:
-                albumNames = albumIDToName[albumID]
-                artistIDCoreAlbumNames[artistID] += albumNames
-
-        artistIDAlbumNames = {}
-        for artistID,albumIDs in artistIDAlbumIDs.items():
-            artistIDAlbumNames[artistID] = []
-            for albumID in albumIDs:
-                albumNames = albumIDToName[albumID]
-                artistIDAlbumNames[artistID] += albumNames
-
-
-
-        for artistID in artistIDCoreAlbumIDs.keys():
-            artistIDCoreAlbumIDs[artistID] = list(set(artistIDCoreAlbumIDs[artistID]))
-        for artistID in artistIDAlbumIDs.keys():
-            artistIDAlbumIDs[artistID] = list(set(artistIDAlbumIDs[artistID]))
-
-        for artistID in artistIDCoreAlbumNames.keys():
-            artistIDCoreAlbumNames[artistID] = list(set(artistIDCoreAlbumNames[artistID]))
-        for artistID in artistIDAlbumNames.keys():
-            artistIDAlbumNames[artistID] = list(set(artistIDAlbumNames[artistID]))    
-
-        savenames = {"ArtistIDCoreAlbumIDs": artistIDCoreAlbumIDs, "ArtistIDAlbumIDs": artistIDAlbumIDs,
-                     "ArtistIDCoreAlbumNames": artistIDCoreAlbumNames, "ArtistIDAlbumNames": artistIDAlbumNames}
-        for basename,savedata in savenames.items():
-            savename = setFile(self.getDiscogDBDir(), "{0}.p".format(basename))
-            print("Saving {0} entries to {1}".format(len(savedata), savename))
-            print("  --> There are {0} albums in this file".format(sum([len(v) for k,v in savedata.items()])))
-            saveFile(ifile=savename, idata=savedata, debug=True)
-            print("")
+            artistIDAlbumNames = {}
+            for artistID,albumIDs in artistIDAlbumIDs.items():
+                artistIDAlbumNames[artistID] = []
+                for albumID in albumIDs:
+                    albumNames = albumIDToName[albumID]
+                    artistIDAlbumNames[artistID] += albumNames
 
 
-        savenames = {"RefToID": albumRefToID, "NameToID": albumNameToID, "NameToRef": albumNameToRef,
-                     "IDToRef": albumIDToRef, "IDToName": albumIDToName, "RefToName": albumRefToName}
-        for basename,savedata in savenames.items():
-            savename = setFile(self.getDiscogDBDir(), "Album{0}.p".format(basename))
-            print("Saving {0} entries to {1}".format(len(savedata), savename))
-            saveFile(ifile=savename, idata=savedata, debug=True)
-            print("")        
-        
-        
-        
-        
-        
+
+            for artistID in artistIDCoreAlbumIDs.keys():
+                artistIDCoreAlbumIDs[artistID] = list(set(artistIDCoreAlbumIDs[artistID]))
+            for artistID in artistIDAlbumIDs.keys():
+                artistIDAlbumIDs[artistID] = list(set(artistIDAlbumIDs[artistID]))
+
+            for artistID in artistIDCoreAlbumNames.keys():
+                artistIDCoreAlbumNames[artistID] = list(set(artistIDCoreAlbumNames[artistID]))
+            for artistID in artistIDAlbumNames.keys():
+                artistIDAlbumNames[artistID] = list(set(artistIDAlbumNames[artistID]))    
+
+            savenames = {"ArtistIDCoreAlbumIDs": artistIDCoreAlbumIDs, "ArtistIDAlbumIDs": artistIDAlbumIDs,
+                         "ArtistIDCoreAlbumNames": artistIDCoreAlbumNames, "ArtistIDAlbumNames": artistIDAlbumNames}
+            for basename,savedata in savenames.items():
+                savename = setFile(self.getDiscogDBDir(), "{0}.p".format(basename))
+                print("Saving {0} entries to {1}".format(len(savedata), savename))
+                print("  --> There are {0} albums in this file".format(sum([len(v) for k,v in savedata.items()])))
+                saveFile(ifile=savename, idata=savedata, debug=True)
+                print("")
+
+
+            savenames = {"RefToID": albumRefToID, "NameToID": albumNameToID, "NameToRef": albumNameToRef,
+                         "IDToRef": albumIDToRef, "IDToName": albumIDToName, "RefToName": albumRefToName}
+            for basename,savedata in savenames.items():
+                savename = setFile(self.getDiscogDBDir(), "Album{0}.p".format(basename))
+                print("Saving {0} entries to {1}".format(len(savedata), savename))
+                saveFile(ifile=savename, idata=savedata, debug=True)
+                print("")        
+
         
         elapsed(start, cmt)

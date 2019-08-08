@@ -8,21 +8,145 @@ from math import ceil, floor
 from collections import OrderedDict
 
 from discogsBase import discogs
+from discogsUtils import discogsUtils
+
+class albumCodeClass:
+    def __init__(self, code=None, err=None):
+        self.code = code
+        self.err  = err
+        
+    def get(self):
+        return self.__dict__
+    
+            
+class albumURLClass:
+    def __init__(self, url=None, err=None):
+        self.url = url
+        self.err = err
+        
+    def get(self):
+        return self.__dict__
+        
+        
+class albumNameClass:
+    def __init__(self, name=None, err=None):
+        self.name = name
+        self.err  = err
+        
+    def get(self):
+        return self.__dict__
+    
+
+class albumBasicClass:
+    def __init__(self, artist=None, album=None, err=None):
+        self.artist  = artist
+        self.album   = album
+        self.err     = err
+        
+    def get(self):
+        return self.__dict__
+
+    
+class albumProfileClass:
+    def __init__(self, label=None, aformat=None, country=None, released=None, genre=None, style=None, err=None):
+        self.label    = label
+        self.aformat  = aformat
+        self.country  = country
+        self.released = released
+        self.genre    = genre
+        self.style    = style
+        self.err      = err
+        
+    def get(self):
+        return self.__dict__
+    
+
+class albumTrackClass:
+    def __init__(self):
+        self.tracks = []
+        self.err    = None
+        
+    def add(self, track):
+        if track.position is None:
+            track.position = len(self.tracks)+1
+        self.tracks.append(track)
+        if track.err is not None:
+            self.err = "Track {0}".format(len(self.tracks))
+        
+    def get(self):
+        return self.__dict__
+    
+
+class albumTrackDataClass:
+    def __init__(self, name=None, length=None, position=None, err=None):
+        self.name      = length
+        self.length    = length
+        self.position  = position
+        self.err       = err
+        
+    def get(self):
+        return self.__dict__
+    
+
+class albumVersionClass:
+    def __init__(self, text=None, nums=None, err=None):
+        self.text = text
+        self.nums = nums
+        self.err  = err
+        
+    def get(self):
+        return self.__dict__
+    
+
+class albumCreditClass:
+    def __init__(self):
+        self.credit = {}
+        self.err    = None
+        
+    def add(self, role, ref, err=None):
+        self.credit[role] = ref
+        if err is not None:
+            self.err = "Role: {0}".format(role)
+        
+    def get(self):
+        return self.__dict__
+    
+
+class albumURLInfo:
+    def __init__(self, name=None, url=None, ID=None, err=None):
+        self.name = name
+        self.url  = url
+        self.ID   = ID
+        self.err  = err
+        
+    def get(self):
+        return self.__dict__
+        
+        
+class albumDataClass:
+    def __init__(self, artist=None, album=None, profile=None, url=None, code=None, tracks=None, versions=None, credits=None, err=None):
+        self.artist   = artist
+        self.album    = album
+        self.profile  = profile
+        self.url      = url
+        self.code     = code
+        self.tracks   = tracks
+        self.versions = versions
+        self.credits  = credits
+        self.err      = err
+                
+    def get(self):
+        return self.__dict__
+
+
+
 
 class album(discogs):
     def __init__(self):
-        self.name   = "album"
-        self.bsdata = None
-        self.filename = None
-        
-
-    def fixName(self, name):
-        if name:
-            try:
-                name   = name.decode('string_escape')
-            except:
-                name   = name
-        return name
+        self.bsdata    = None
+        self.filename  = None
+        self.debug     = False
+        self.dutils    = discogsUtils()
 
     def stripName(self, name):
         if name == None:
@@ -39,7 +163,13 @@ class album(discogs):
         
         
     def getData(self, inputdata):
-        if isinstance(inputdata, str):
+        bsdata = None
+        if isinstance(inputdata, bytes):
+            try:
+                bsdata = getHTML(str(inputdata))
+            except:
+                raise ValueError("Not sure about btypes input: {0}".format(inputdata))
+        elif isinstance(inputdata, str):
             if isFile(inputdata):
                 try:
                     self.filename = inputdata
@@ -54,10 +184,12 @@ class album(discogs):
                     if getsize(self.filename) < 1000:
                         raise ValueError("Not a real file: {0}".format(self.filename))
             else:
-                raise ValueError("Not sure about string input: {0}".format(inputdata))
+                try:
+                    bsdata = getHTML(inputdata)
+                except:
+                    raise ValueError("Not sure about string input: {0}".format(inputdata))
         elif isBS4(inputdata):
             bsdata = inputdata
-            pass
         else:
             raise ValueError("Not sure about input type: {0}".format(type(inputdata)))
 
@@ -71,8 +203,12 @@ class album(discogs):
         for ref in content.findAll("a"):
             url    = ref.attrs['href']
             name   = fixName(ref.text)
-            discID = self.getArtistDiscID(url)
-            data.append([name,url,discID])
+            try:
+                ID = self.dutils.getArtistID(url)
+            except:
+                ID = None
+                            
+            data.append(albumURLInfo(name=name, url=url, ID=ID))
         return data
 
 
@@ -89,33 +225,10 @@ class album(discogs):
         return content
 
 
-    def getArtistDiscID(self, suburl, debug = False):
-        ival = "/artist"
-        if not isinstance(suburl, str):
-            if debug: print("SUBURL is not a string:",suburl)
-            return None
+    def getAlbumBasics(self):
+        info = {"Err": None}
 
-        pos = suburl.find(ival)
-        if pos == -1:
-            if debug: print("Could not find discID in", suburl)
-            return None
-
-        data = suburl[pos+len(ival)+1:]
-        pos  = data.find("-")
-        discID = data[:pos]
-        try:
-            int(discID)
-        except:
-            if debug: print("DiscID is not an integer:",discID)
-            return None
-
-        if debug: print("Found ID:",discID)
-        return str(discID)
-
-
-    def getAlbumInfo(self, bsdata, filename = None, debug = False):
-        result = bsdata.find("div", {"class": "profile"})
-        info = {}
+        result = self.bsdata.find("div", {"class": "profile"})
         if result:
             spans = result.findAll("span")
             for span in spans:
@@ -125,43 +238,44 @@ class album(discogs):
                     if info.get("Artist") == None:
                         info["Artist"] = []
                     info["Artist"].append(artist)
-                    if debug:
+                    if self.debug:
                         print("Found Artist:",artist)
                 else:
-                    album = self.fixName(span.text)
+                    album = fixName(span.text)
                     album = album.strip()
                     album = album.replace("\n", "")
                     info["Album"] = album
-                    if debug:
+                    if self.debug:
                         print("Found Album:",info["Album"])
 
-        if info.get("Artist") == None:
-            print("Found {0} spans".format(len(spans)))
-            print("Found These Attrs: {0}".format([x.attrs for x in spans]))
-            print("")
-            print(result)
-            print(filename)
-            raise ValueError("No Artist!!")
 
         ## Fix artist list (if needed)
-        artists = []
-        for artist in info["Artist"]:
-            if isinstance(artist, list):
-                if isinstance(artist[0], list):
-                    artists.append(artist[0])
+        if info.get("Artist") is not None:
+            artists = []
+            for artist in info["Artist"]:
+                if isinstance(artist, list):
+                    if isinstance(artist[0], list):
+                        artists.append(artist[0])
+                    else:
+                        artists.append(artist)
                 else:
                     artists.append(artist)
-            else:
-                artists.append(artist)
+            info["Artist"] = artists
+        else:
+            info["Artist"] = None
 
-        info["Artist"] = artists
+        if info.get("Artist") == None:
+            info["Err"] = "No Artist"
+        if info.get("Album") == None:
+            info["Err"] = "No Album"
+        
+        abc = albumBasicClass(artist=info.get("Artist"), album=info.get("Album"), err=info["Err"])
+        return abc
 
-        return info
 
-
-    def getAlbumProfile(self, bsdata, filename = None, debug = False):
-        result = bsdata.find("div", {"class": "profile"})
-        variations = {}
+    def getAlbumProfile(self):
+        result = self.bsdata.find("div", {"class": "profile"})
+        data   = {"Err": None}
         if result:
             heads = result.findAll("div", {"class": "head"})
             heads = [x.text for x in heads]
@@ -169,30 +283,40 @@ class album(discogs):
 
             content = result.findAll("div", {"class": "content"})
             if len(heads) != len(content):
-                print("Mismatch in head/content")
+                data["Err"] = "Mismatch in head/content"
 
             for i in range(min(len(heads),len(content))):
                 reftest = content[i].find("a")
                 if reftest:
                     content[i] = self.getNamesAndURLs(content[i])
                     if heads[i] == "Country" or heads[i] == "Released":
-                        content[i] = self.cleanContent(heads[i], content[i])
+                        content[i][0].name = self.stripName(content[i][0].name)
                 else:
-                    content[i] = content[i].text
-                    content[i] = content[i].strip()
-                variations[heads[i]] = content[i]
+                    content[i] = albumURLInfo(name=content[i].text.strip())
+                data[heads[i]] = content[i]
 
-        return variations
+            apc = albumProfileClass(label=data.get("Label"), aformat=data.get("Format"),
+                                    country=data.get("Country"), released=data.get("Released"),
+                                    genre=data.get("Genre"), style=data.get("Style"),
+                                    err=data.get("Err"))
+        else:
+            apc = albumProfileClass(err="No Profile")                
+                
+        return apc
 
 
 
-    def getAlbumTracks(self, bsdata, filename = None, debug = False):
-        result = bsdata.find("table", {"class": "playlist"})
-        tracks = OrderedDict()
-        if result:
+    def getAlbumTracks(self):
+        atc = albumTrackClass()
+        
+        result = self.bsdata.find("table", {"class": "playlist"})
+        if result is None:
+            atc.err = "No Tracks"
+        else:
             trackLines = result.findAll("tr", {"class": "track"})
             if len(trackLines) == 0:
                 trackLines = result.findAll("tr", {"class": "tracklist_track"})
+                
             for tr in trackLines:
                 # position
                 attrs = tr.attrs
@@ -208,7 +332,7 @@ class album(discogs):
                 if td:
                     span = td.find("span", {"class": "tracklist_track_title"})
                     if span:
-                        name = self.fixName(span.text)
+                        name = fixName(span.text)
 
                     meta = td.find("meta")
                     if meta:
@@ -221,116 +345,141 @@ class album(discogs):
                     if span:
                         duration = span.text
 
-                if position == None:
-                    position = len(tracks)+1
+                if name is None:
+                    err = "No Name"
+                elif duration is None:
+                    err = "No Duration"
+                else:
+                    err = None
 
-                tracks[position] = {"Name": name, "Length": duration}
+                track = albumTrackDataClass(name=name, length=duration, position=position, err=err)
+                atc.add(track)
 
-                if debug: print(position,name,url,duration)
+                if self.debug:
+                    print(position,name,duration)
 
-        return tracks
+        return atc
 
 
 
-    def getAlbumURL(self, bsdata, filename = None, debug = False):
+    def getAlbumURL(self):
+        url = None
+        
         # 1st Try
-        result = bsdata.find("link", {"rel": "canonical"})
-        if result:
+        result = self.bsdata.find("link", {"rel": "canonical"})
+        if result is not None:
             url = result.attrs["href"]
             url = url.replace("https://www.discogs.com", "")        
-            if debug: print("Found URL using rel: canoical -->",url)
-            return url
+            if self.debug:
+                print("Found URL using rel: canoical -->",url)
 
         # 2nd Try
-        result = bsdata.find("link", {"hreflang": "en"})
-        if result:
-            url = result.attrs["href"]
-            url = url.replace("https://www.discogs.com", "")
-            if debug: print("Found URL using hreflang: en -->",url)
-            return url
+        if url is None:
+            result = self.bsdata.find("link", {"hreflang": "en"})
+            if result is not None:
+                url = result.attrs["href"]
+                url = url.replace("https://www.discogs.com", "")
+                if self.debug:
+                    print("Found URL using hreflang: en -->",url)
 
-        if debug: print("Could not find URL!")
-        return None
-
-
-
-    def getAlbumCode(self, albumURL, filename = None, debug = False):
-        try:
-            code = albumURL.split('/')[-1]
-            code = str(int(code))
-        except:
-            code = None
-
-        if code == None:
-            if albumURL.find("Various?anv=") != -1:
-                code = -1
-
-        return code
+        if url is not None:
+            auc = albumURLClass(url=url)
+        else:
+            auc = albumURLClass(err="No URL")            
+                    
+        return auc
 
 
 
-    def getAlbumVersions(self, bsdata, filename = None, debug = False):
-        for h3 in bsdata.findAll("h3"):
-            attrs = h3.attrs
-            if attrs.get("data-for"):
-                if attrs["data-for"] == ".m_versions":
-                    for val in h3.strings:
-                        if val.find("Versions") != -1:
-                            versions = val.replace("Versions", "")
-                            versions = versions.replace("(", "")
-                            versions = versions.replace(")", "")
-                            versions = versions.strip()
-                            if debug: print("Found versions:",versions)
-                            return versions
+    def getAlbumCode(self, url):
+        err  = None
+        code = None
+        
+        if url is not None:
+            try:
+                code = url.split('/')[-1]
+                code = str(int(code))
+            except:
+                err  = "NaN"
 
-        if debug: print("Found NO versions!")
-        return None
+            if code == None:
+                if url.find("Various?anv=") != -1:
+                    code = -1
+                    err = "Various"
+        else:
+            err = "No URL"
+
+        acc = albumCodeClass(code=code, err=err)
+        return acc
 
 
 
-    def getAlbumCredits(self, bsdata, filename = None, debug = False):    
-        result = bsdata.find("div", {"class": "credits"})
-        credit = {}
+    def getAlbumVersions(self):
+        err  = None
+        text = None
+        nums = None
+        h3s  = [x for x in self.bsdata.findAll("h3") if x.attrs.get('data-for') == ".m_versions"]
+        if len(h3s) == 1:
+            try:
+                text = removeTag(h3s[0], tag='a').text.strip()
+            except:
+                text = None
+                err  = "LinkErr"
+
+            if text is not None:
+                try:
+                    nums = text[text.find("(")+1:text.find(")")].split(" of ")
+                except:
+                    nums = None
+                    err  = "NumErr"
+
+                if nums is not None:
+                    try:
+                        nums = [int(x) for x in nums]
+                    except:
+                        nums = None
+                        err  = "NumNotInt"
+        else:
+            err = "NoVersions"
+
+        avc = albumVersionClass(text=text, nums=nums, err=err)
+        return avc
+
+
+
+    def getAlbumCredits(self):
+        acc = albumCreditClass()
+        
+        result = self.bsdata.find("div", {"class": "credits"})
         if result:
             for li in result.findAll("li"):
                 role = li.find("span", {"class": "role"})
                 if role:
                     role = role.text
                 href = self.getNamesAndURLs(li)
-                credit[role] = href
+                acc.add(role, href)
+        else:
+            acc.err = "NoCredits"
 
-        return credit
+        return acc
 
 
 
     def parse(self, debug = False):
-        bsdata = self.bsdata
-        filename = self.filename
+        basics = self.getAlbumBasics()
+        artist = basics.artist
+        album  = basics.album
         
-        if not isBS4(bsdata):
-            raise ValueError("Can not parse album because data is not BS4.")
+        profile     = self.getAlbumProfile()
+        url         = self.getAlbumURL()
+        code        = self.getAlbumCode(url.url)
+        tracks      = self.getAlbumTracks()
+        versions    = self.getAlbumVersions()
+        credits     = self.getAlbumCredits()
 
-        keys = ["Artist", "Album", "Profile", "URL", "Tracks", "Versions", "Credits"]    
-        retval = {}
-        for key in keys: retval[key] = None
-        info                  = self.getAlbumInfo(bsdata, filename, debug)
-        if info.get("Album") == None:
-            print("Could not find Album for file:")
-            print(filename)
-            return retval
-        if info.get("Artist") == None:
-            print("Could not find Artist for file:")
-            print(filename)
-            return retval
-
-        retval["Album"]       = info["Album"]
-        retval["Artist"]      = info["Artist"]
-        retval["Profile"]     = self.getAlbumProfile(bsdata, filename, debug)
-        retval["URL"]         = self.getAlbumURL(bsdata, filename, debug)
-        retval["ID"]          = self.getAlbumCode(retval["URL"], debug)
-        retval["Tracks"]      = self.getAlbumTracks(bsdata, filename, debug)
-        retval["Versions"]    = self.getAlbumVersions(bsdata, filename, debug)
-        retval["Credits"]     = self.getAlbumCredits(bsdata, filename, debug)
-
-        #print retval
-        return retval    
+        
+        err = [basics.err, profile.err, url.err, code.err, tracks.err, versions.err, credits.err]
+        
+        adc = albumDataClass(artist=artist, album=album, profile=profile, url=url, code=code, tracks=tracks, versions=versions, credits=credits)
+        
+        return adc

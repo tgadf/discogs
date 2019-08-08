@@ -279,10 +279,20 @@ class discogs():
     ##################################  Core Albums ##################################
     def getArtistIDCoreAlbumNames(self):
         return self.getDBData("IDCoreAlbumNames", "Artist")
+    
+    def getArtistIDCoreAlbumIDs(self):
+        return self.getDBData("IDCoreAlbumIDs", "Artist")
 
     def getArtistIDAlbumNames(self):
         return self.getDBData("IDAlbumNames", "Artist")
 
+    def getArtistIDAlbumIDs(self):
+        return self.getDBData("IDAlbumIDs", "Artist")
+    
+    
+    ##################################  Ascii Lookup ##################################
+    def getArtistAsciiNames(self):
+        return self.getDBData("AsciiNames", "Artist")
     
     
     ###############################################################################
