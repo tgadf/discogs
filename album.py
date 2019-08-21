@@ -10,6 +10,39 @@ from collections import OrderedDict
 from discogsBase import discogs
 from discogsUtils import discogsUtils
 
+class albumArtistsClass:
+    def __init__(self):
+        self.artists = []
+        self.err     = None
+        
+    def add(self, artist):
+        self.artists.append(artist)
+        if artist.err is not None:
+            self.err = "Artist {0}".format(artist.name)
+        
+    def get(self):
+        return self.__dict__
+    
+    
+class albumArtistClass:
+    def __init__(self, name=None, ID=None, err=None):
+        self.name = name
+        self.ID   = ID
+        self.err  = err
+        
+    def get(self):
+        return self.__dict__
+        
+        
+class albumNameClass:
+    def __init__(self, name=None, err=None):
+        self.name = name
+        self.err  = err
+        
+    def get(self):
+        return self.__dict__
+    
+
 class albumCodeClass:
     def __init__(self, code=None, err=None):
         self.code = code
@@ -26,22 +59,12 @@ class albumURLClass:
         
     def get(self):
         return self.__dict__
-        
-        
-class albumNameClass:
-    def __init__(self, name=None, err=None):
-        self.name = name
-        self.err  = err
-        
-    def get(self):
-        return self.__dict__
     
 
 class albumBasicClass:
-    def __init__(self, artist=None, album=None, err=None):
+    def __init__(self, artist=None, album=None):
         self.artist  = artist
         self.album   = album
-        self.err     = err
         
     def get(self):
         return self.__dict__
@@ -228,48 +251,36 @@ class album(discogs):
     def getAlbumBasics(self):
         info = {"Err": None}
 
+        aac = albumArtistsClass()
+        anc = None
+        
+        
         result = self.bsdata.find("div", {"class": "profile"})
         if result:
             spans = result.findAll("span")
             for span in spans:
                 attrs = span.attrs
                 if "title" in attrs.keys():
-                    artist = self.getNamesAndURLs(span)
-                    if info.get("Artist") == None:
-                        info["Artist"] = []
-                    info["Artist"].append(artist)
-                    if self.debug:
-                        print("Found Artist:",artist)
+                    artists = self.getNamesAndURLs(span)
+                    for artist in artists:
+                        aac.add(artist)
+                        if self.debug:
+                            print("Found Artist:",artist)
                 else:
                     album = fixName(span.text)
                     album = album.strip()
                     album = album.replace("\n", "")
-                    info["Album"] = album
+                    anc = albumNameClass(name=album, err=None)
                     if self.debug:
-                        print("Found Album:",info["Album"])
+                        print("Found Album:",album)
 
 
-        ## Fix artist list (if needed)
-        if info.get("Artist") is not None:
-            artists = []
-            for artist in info["Artist"]:
-                if isinstance(artist, list):
-                    if isinstance(artist[0], list):
-                        artists.append(artist[0])
-                    else:
-                        artists.append(artist)
-                else:
-                    artists.append(artist)
-            info["Artist"] = artists
-        else:
-            info["Artist"] = None
-
-        if info.get("Artist") == None:
-            info["Err"] = "No Artist"
-        if info.get("Album") == None:
-            info["Err"] = "No Album"
-        
-        abc = albumBasicClass(artist=info.get("Artist"), album=info.get("Album"), err=info["Err"])
+        if len(aac.artists) == 0:
+            aac.err = "No Data"
+        if anc is None:
+            anc = albumNameClass(err="No Data")
+                    
+        abc = albumBasicClass(artist=aac, album=anc)
         return abc
 
 
@@ -478,7 +489,7 @@ class album(discogs):
         credits     = self.getAlbumCredits()
 
         
-        err = [basics.err, profile.err, url.err, code.err, tracks.err, versions.err, credits.err]
+        err = [profile.err, url.err, code.err, tracks.err, versions.err, credits.err]
         
         adc = albumDataClass(artist=artist, album=album, profile=profile, url=url, code=code, tracks=tracks, versions=versions, credits=credits)
         

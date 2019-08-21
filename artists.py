@@ -97,6 +97,7 @@ class artists():
 
         if debug:
             print("Now Downloading in Artists(): {0}".format(url))
+            print("                   Saving as: {0}".format(savename))
 
         request=urllib.request.Request(url,None,headers) #The assembled request
         response = urllib.request.urlopen(request)
@@ -105,7 +106,14 @@ class artists():
         if parse is True:
             info = self.artist.getData(str(data))
             ID = info.ID.ID
-            artistID = getBaseFilename(savename)
+            
+            if savename.find("/extra/") == -1:
+                artistID = getBaseFilename(savename)
+            else:
+                artistID = getBaseFilename(savename).split("-")[0]
+                if ID != artistID:
+                    raise ValueError("Problem saving {0} with artistID {1}".format(savename, ID))
+                
             if ID != artistID:
                 removeFile(savename)
                 savename = self.getArtistSavename(ID)
@@ -220,7 +228,8 @@ class artists():
         return artistData
     
     
-    def parseArtistModValExtraFiles(self, modVal, force=False, debug=False):
+    def parseArtistModValExtraFiles(self, modVal, debug=False):
+        force=False
         print("Parsing Artist Extra Files For ModVal {0}".format(modVal))
         artistInfo = artist()
 
@@ -235,18 +244,23 @@ class artists():
         
         if len(files) == 0:
             return
+        print("  Found {0} extra files for ModVal {1}".format(len(files), modVal))
 
         dbname = setFile(artistDBDir, "{0}-DB.p".format(modVal))
         
-        print("  Loaded ", end="")
-        dbdata = getFile(dbname, version=3)
-        print("{0} artist IDs.".format(len(dbdata)))
-        if force is True:
+        if force is False:
+            print("  Loaded ", end="")
+            dbdata = getFile(dbname, version=3)
+            print("{0} artist IDs.".format(len(dbdata)))
+        else:
             print("Forcing Reloads of ModVal={0}".format(modVal))
             print("  Processing {0} files.".format(len(files)))
             dbdata = {}
 
         saveIt = 0
+        
+        nArtistMedia = {}
+        
         for j,ifile in enumerate(files):
             if force is True:
                 if j % 250 == 0:
@@ -255,27 +269,31 @@ class artists():
             
             info     = artistInfo.getData(ifile)
             artistID = info.ID.ID
-            saveIt  += 1
+            
+            print(artistID,'\t',sum([len(x) for x in dbdata[artistID].media.media.values()]),end="\t")
 
-            media = info.media.media
-            for mediaType,mediaData in media.items():
-                codes = [mediaValues.code for mediaValues in mediaData]
-                #print("Media: {0} \t{1}".format(mediaType, len(codes)), end='\t')
-
-                if dbdata[artistID].media.media.get(mediaType) is None:
-                    dbdata[artistID].media.media[mediaType] = mediaData
+            keys = list(set(list(info.media.media.keys()) + list(dbdata[artistID].media.media.keys())))
+            for k in keys:
+                v = info.media.media.get(k)
+                if v is None:
+                    continue
+                iVal  = {v2.code: v2 for v2 in v}
+                dVal  = dbdata[artistID].media.media.get(k)
+                if dVal is None:
+                    Tretval = iVal
+                    saveIt += len(iVal)
                 else:
-                    for mediaValues in mediaData:
-                        if mediaValues.code not in codes:
-                            dbdata[artistID].media.media[mediaType].append(mediaValues)
-
-                codes = [mediaValues.code for mediaValues in dbdata[artistID].media.media[mediaType]]
-                #print("{0}".format(len(codes)))
-
-
+                    Tretval = {v2.code: v2 for v2 in dVal}
+                    Tretval.update(iVal)
+                    saveIt += len(iVal)
+                dbdata[artistID].media.media[k] = list(Tretval.values())
+                
+            print(sum([len(x) for x in dbdata[artistID].media.media.values()]))
+            
+            
         if saveIt > 0:
             savename = setFile(artistDBDir, "{0}-DB.p".format(modVal))     
-            print("Saving {0} new artist IDs to {1}".format(saveIt, savename))
+            print("Saving {0} new artist media to {1}".format(saveIt, savename))
             saveJoblib(data=dbdata, filename=savename, compress=True)
             
         return saveIt
@@ -294,8 +312,9 @@ class artists():
         files  = findExt(dirVal, ext='.p')
 
         dbname = setFile(artistDBDir, "{0}-DB.p".format(modVal))
-        dbdata = getFile(dbname, version=3)
-        if force is True:
+        if force is False:
+            dbdata = getFile(dbname, version=3)
+        else:
             print("Forcing Reloads of ModVal={0}".format(modVal))
             print("  Processing {0} files.".format(len(files)))
             dbdata = {}
@@ -343,20 +362,41 @@ class artists():
     ################################################################################
     # Check ArtistDB Files
     ################################################################################ 
-    def rmIDFromDB(self, artistID, modValue):
+    def rmIDFromDB(self, artistID, modValue=None):
+        if modValue is None:
+            modValue  = self.discogsUtils.getDiscIDHashMod(discID=artistID, modval=self.disc.getMaxModVal())
         artistDBDir = self.disc.getArtistsDBDir()
         dbname  = setFile(artistDBDir, "{0}-DB.p".format(modValue))     
         print("Loading {0}".format(dbname))
         dbdata  = getFile(dbname)
+        
+        saveVal = False
 
-        try:
-            del dbdata[artistID]
-            print("Deleted {0}".format(artistID))
-        except:
-            print("Not there...")
+        if isinstance(artistID, str):
+            artistID = [artistID]
+        elif not isinstance(artistID, list):
+            raise ValueError("Not sure what to do with {0}".format(artistID))
+            
+        for ID in artistID:
+            try:
+                del dbdata[ID]
+                print("Deleted {0}".format(ID))
+                saveVal = True
+            except:
+                print("Not there...")
 
-        print("Saving {0}".format(dbname))
-        saveFile(idata=dbdata, ifile=dbname)
+            try:
+                savename = self.getArtistSavename(ID)
+                removeFile(savename)
+                print("Removed File {0}".format(savename))
+            except:
+                print("Not there...")
+
+        if saveVal:
+            print("Saving {0}".format(dbname))
+            saveFile(idata=dbdata, ifile=dbname)
+        else:
+            print("No reason to save {0}".format(dbname))
 
     
     def assertDBModValExtraData(self, modVal):
@@ -708,7 +748,7 @@ class artists():
             savenames = {"RefToID": albumRefToID, "NameToID": albumNameToID, "NameToRef": albumNameToRef,
                          "IDToRef": albumIDToRef, "IDToName": albumIDToName, "RefToName": albumRefToName}
             for basename,savedata in savenames.items():
-                savename = setFile(self.getDiscogDBDir(), "Album{0}.p".format(basename))
+                savename = setFile(self.getDiscogDBDir(), "ArtistAlbum{0}.p".format(basename))
                 print("Saving {0} entries to {1}".format(len(savedata), savename))
                 saveFile(ifile=savename, idata=savedata, debug=True)
                 print("")        

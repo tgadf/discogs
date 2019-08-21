@@ -8,6 +8,7 @@ from searchUtils import findExt, findPattern
 from glob import glob
 from os.path import join
 from time import sleep
+from collections import Counter
 
 
 
@@ -143,8 +144,19 @@ class discogs():
         return self.dirnames["artists-db"]
     
     def getArtistsDBFiles(self):
-        dbfiles = findExt(self.getArtistsDBDir(), "*.p")
+        dbfiles = findExt(self.getArtistsDBDir(), "*-DB.p")
         return dbfiles
+    
+    def getArtistsDBModValFilename(self, modVal):
+        dbfile = setFile(self.getArtistsDBDir(), "{0}-DB.p".format(modVal))
+        return dbfile
+    
+    def getArtistsDBModValData(self, modVal):
+        dbfile = self.getArtistsDBModValFilename(modVal)
+        if not isFile(dbfile):
+            raise ValueError("{0} does not exist".format(dbfile))
+        dbdata = getFile(dbfile)
+        return dbdata
 
 
     ###############################################################################
@@ -155,6 +167,21 @@ class discogs():
 
     def getAlbumsDBDir(self):
         return self.dirnames["albums-db"]
+    
+    def getAlbumsDBFiles(self):
+        dbfiles = findExt(self.getAlbumsDBDir(), "*-DB.p")
+        return dbfiles
+    
+    def getAlbumsDBModValFilename(self, modVal):
+        dbfile = setFile(self.getAlbumsDBDir(), "{0}-DB.p".format(modVal))
+        return dbfile
+    
+    def getAlbumsDBModValData(self, modVal):
+        dbfile = self.getAlbumsDBModValFilename(modVal)
+        if not isFile(dbfile):
+            raise ValueError("{0} does not exist".format(dbfile))
+        dbdata = getFile(dbfile)
+        return dbdata
 
 
     ###############################################################################
@@ -231,6 +258,9 @@ class discogs():
     def getAlbumNameToIDData(self):
         return self.getDBData("NameToID", "Album")
     
+    def getAlbumNameToIDsData(self):
+        return self.getDBData("NameToIDs", "Album")
+    
     def getAlbumNameToRefData(self):
         return self.getDBData("NameToRef", "Album")
 
@@ -274,6 +304,13 @@ class discogs():
     
     def getCollectionRefCountsData(self):
         return self.getDBData("RefCounts", "Collection")
+    
+    def getCollectionAlbumRefCountsData(self):
+        return Counter(self.getDBData("AlbumRefCounts", "Collection"))
+    
+    def getCollectionAlbumRefArtistsData(self):
+        return self.getDBData("AlbumRefArtists", "Collection")
+    
     
     
     ##################################  Core Albums ##################################

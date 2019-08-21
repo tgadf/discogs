@@ -1,7 +1,13 @@
 class discogsUtils:
     def __init__(self):
-        self.baseURL  = "https://www.discogs.com/search/"        
+        self.baseURL  = "https://www.discogs.com/search/"
+        self.disc     = None
+        
 
+    def setDiscogs(self, disc):
+        self.disc = disc
+        
+        
     def getBaseURL(self):
         return baseURL
     
@@ -68,6 +74,34 @@ class discogsUtils:
             
         return discID
     
+
+    ###############################################################################
+    #
+    # Album Functions
+    #
+    ###############################################################################
+    def getAlbumID(self, href):
+        code = None
+        if href is not None:
+            try:
+                code = href.split('/')[-1]
+                code = str(int(code))
+            except:
+                return None
+        else:
+            return None
+        
+        return code
+    
+    
+    def getArtistModVal(self, artistID):
+        if self.disc is not None:
+            modValue  = self.getDiscIDHashMod(discID=artistID, modval=self.disc.getMaxModVal())
+            return modValue
+        else:
+            raise ValueError("Must set discogs()!")
+            
+
     
     ###############################################################################
     #
@@ -103,7 +137,10 @@ class discogsUtils:
     def getDiscIDHashMod(self, discID, modval):
         if discID == None:
             return None
-        ival = int(discID)
+        try:
+            ival = int(discID)
+        except:
+            return None
         return ival % modval
 
     def getArtistHashVal(self, artist, href):
