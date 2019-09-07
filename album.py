@@ -303,7 +303,7 @@ class album(discogs):
                     if heads[i] == "Country" or heads[i] == "Released":
                         content[i][0].name = self.stripName(content[i][0].name)
                 else:
-                    content[i] = albumURLInfo(name=content[i].text.strip())
+                    content[i] = [albumURLInfo(name=content[i].text.strip())] ## Must return a list to match other format
                 data[heads[i]] = content[i]
 
             apc = albumProfileClass(label=data.get("Label"), aformat=data.get("Format"),

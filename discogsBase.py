@@ -276,6 +276,12 @@ class discogs():
     def getAlbumIDToRefData(self):
         return self.getDBData("IDToRef", "Album")
     
+    def getAlbumIDToArtistIDData(self):
+        return self.getDBData("IDToArtistID", "Album")
+    
+    def getAlbumArtistMetaData(self):
+        return self.getDBData("ArtistMetaData", "Album")
+    
     
     ##################################  Collections ##################################
     def getCollectionNameToIDData(self):
@@ -319,12 +325,18 @@ class discogs():
     
     def getArtistIDCoreAlbumIDs(self):
         return self.getDBData("IDCoreAlbumIDs", "Artist")
+    
+    def getArtistIDCoreAlbumRefs(self):
+        return self.getDBData("IDCoreAlbumRefs", "Artist")
 
     def getArtistIDAlbumNames(self):
         return self.getDBData("IDAlbumNames", "Artist")
 
     def getArtistIDAlbumIDs(self):
         return self.getDBData("IDAlbumIDs", "Artist")
+
+    def getArtistIDAlbumRefs(self):
+        return self.getDBData("IDAlbumRefs", "Artist")
     
     
     ##################################  Ascii Lookup ##################################

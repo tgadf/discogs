@@ -553,6 +553,8 @@ class artists():
 
         artistIDCoreAlbumIDs   = {}
         artistIDAlbumIDs       = {}
+        artistIDCoreAlbumRefs  = {}
+        artistIDAlbumRefs      = {}
         artistIDCoreAlbumNames = {}
         artistIDAlbumNames     = {}
 
@@ -634,8 +636,11 @@ class artists():
                         
                 ##### Albums For Artists #####
                 if doAlbums:
-                    artistIDCoreAlbumIDs[artistID] = []
-                    artistIDAlbumIDs[artistID]     = []
+                    artistIDCoreAlbumIDs[artistID]  = []
+                    artistIDAlbumIDs[artistID]      = []
+                    artistIDCoreAlbumRefs[artistID] = {}
+                    artistIDAlbumRefs[artistID]     = {}
+
 
                     media = artistData.media.media
                     if media is not None:
@@ -643,11 +648,16 @@ class artists():
                             if not isinstance(mediaData, list):
                                 raise ValueError("MediaData is a {0}".format(type(mediaData)))
 
-                            albumKeys = [mediaValues.code for mediaValues in mediaData]                            
+                            albumKeys = [mediaValues.code for mediaValues in mediaData]
+                            albumURLs = {mediaValues.code: mediaValues.url for mediaValues in mediaData}
+
                             #albumCntr[mediaName] += 1
                             if mediaName in core:
                                 artistIDCoreAlbumIDs[artistID] += albumKeys
+                                artistIDCoreAlbumRefs[artistID].update(albumURLs)
                             artistIDAlbumIDs[artistID] += albumKeys
+                            artistIDAlbumRefs[artistID].update(albumURLs)
+
 
                             for mediaValues in mediaData:
                                 albumID   = mediaValues.code
@@ -736,6 +746,7 @@ class artists():
                 artistIDAlbumNames[artistID] = list(set(artistIDAlbumNames[artistID]))    
 
             savenames = {"ArtistIDCoreAlbumIDs": artistIDCoreAlbumIDs, "ArtistIDAlbumIDs": artistIDAlbumIDs,
+                         "ArtistIDCoreAlbumRefs": artistIDCoreAlbumRefs, "ArtistIDAlbumRefs": artistIDAlbumRefs,
                          "ArtistIDCoreAlbumNames": artistIDCoreAlbumNames, "ArtistIDAlbumNames": artistIDAlbumNames}
             for basename,savedata in savenames.items():
                 savename = setFile(self.getDiscogDBDir(), "{0}.p".format(basename))

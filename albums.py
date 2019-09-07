@@ -91,6 +91,11 @@ class albums():
         albumID = info.code.code
         artists = info.artist.artists
         if artists is not None:
+            print("  Found album code {0} with {1} artists".format(albumID, len(artists)))
+        else:
+            print("  Found album code {0}".format(albumID))
+            
+        if artists is not None:
             for artist in artists:
                 artistID = artist.ID
                 savename = self.getAlbumSavename(artistID, albumID)
@@ -100,12 +105,17 @@ class albums():
                     print("  Saving {0}".format(savename))
                     saveJoblib(data=albumdata, filename=savename, compress=True)
                     saveIt = True
+                else:
+                    print("  Exists {0}".format(savename))
         else:
             if savename is not None and not isFile(savename):
                 print("  Saving {0}".format(savename))
                 saveJoblib(data=albumdata, filename=savename, compress=True)
                 saveIt = True
+            else:
+                print("  Exists {0}".format(savename))
              
+        print("  Done and sleeping...")
         sleep(sleeptime)
         if saveIt is False:            
             return False
@@ -113,7 +123,7 @@ class albums():
 
         
         
-    def downloadAlbumModValData(self, modval, mediaTypes=["Albums"], maxAlbums=None, debug=False):
+    def downloadAlbumModValData(self, modVal, mediaTypes=["Albums"], maxAlbums=None, debug=False):
         maxModVal = self.modVal
         
         albumsDir = self.getAlbumsDir()
@@ -124,7 +134,7 @@ class albums():
         dbdata = getFile(dbname, version=3)
         print("Found {0} Artists".format(len(dbdata)))
         
-        artistModDir = setSubDir(albumsDir, str(modval))
+        artistModDir = setSubDir(albumsDir, str(modVal))
             
         nArtists = len(dbdata)
         iArtists = 0
@@ -154,15 +164,23 @@ class albums():
      
                     baseURL = self.disc.discogURL
                     url = urllib.parse.urljoin(baseURL, quote(mediaIDData.url))
-                    self.downloadAlbumURLData(url, savename, artistID)
+                    self.downloadAlbumURLData(url, savename, artistID, sleeptime=2.0)
                     nget += 1
         
 
-    def downloadAlbumsFromArtists(self, mediaTypes=["Albums"], maxAlbums=None, debug=False):
+    def downloadAlbumsFromArtists(self, mediaTypes=["Albums"], maxAlbums=None, debug=False, rev=False, rand=False):
         maxModVal  = self.disc.getMaxModVal()
         #for modVal in ['NAN'] + 
-        for modVal in list(range(maxModVal)):
-            self.downloadAlbumModValData(modVal, mediaTypes, maxAlbums, debug)
+        if rand:
+            for modVal in shuffle(list(range(maxModVal))):
+                self.downloadAlbumModValData(modVal, mediaTypes, maxAlbums, debug)
+        elif rev:
+            for modVal in list(reversed(list(range(maxModVal)))):
+                self.downloadAlbumModValData(modVal, mediaTypes, maxAlbums, debug)
+        else:
+            for modVal in list(range(maxModVal)):
+                self.downloadAlbumModValData(modVal, mediaTypes, maxAlbums, debug)
+
                 
         
     
@@ -215,6 +233,7 @@ class albums():
        
         dbname = self.disc.getAlbumsDBModValFilename(modVal)
         if force is True:
+            print("  Forcing a parse of all files.")
             dbdata = {}
         else:
             if isFile(dbname):
@@ -367,8 +386,7 @@ class albums():
             albumIDToRef       = self.disc.getAlbumIDToRefData()
             albumRefToName     = self.disc.getAlbumRefToNameData()
             albumNameToRef     = self.disc.getAlbumNameToRefData()
-            albumIDToArtistID  = self.disc.getAlbumIDToNameData()        
-
+            albumIDToArtistID  = self.disc.getAlbumIDToArtistIDData()            
         else:
             albumNameToID      = {}
             albumIDToName      = {}
@@ -378,6 +396,10 @@ class albums():
             albumNameToRef     = {}            
             albumIDToArtistID  = {}
 
+        artistAlbumMetaData = {}
+
+
+
         
         albumDBDir = self.disc.getAlbumsDBDir()   
         files       = findExt(albumDBDir, ext='.p')  
@@ -386,6 +408,8 @@ class albums():
                 print(i,'/',len(files),'\t',elapsed(start, cmt))
             db = getFile(ifile)
             for artistID,artistData in db.items():
+                artistAlbumMetaData[artistID] = {"Genre": Counter(), "Artists": Counter(), "Style": Counter()}
+
                 for albumID,albumData in artistData.items():
                     
                     albumRef     = albumData.url.url
@@ -416,6 +440,29 @@ class albums():
                         if albumIDToArtistID.get(albumID) is None:
                             albumIDToArtistID[albumID] = [albumArtist.ID for albumArtist in albumArtists.artists]
 
+
+                    ####### Artist MetaData #######
+                    genres = albumData.profile.genre
+                    if not isinstance(genres, list):
+                        genres = [genres]
+                    for genre in genres:
+                        if genre is not None:
+                            artistAlbumMetaData[artistID]['Genre'][genre.name] += 1
+
+                    artists = albumData.artist.artists
+                    for artist in artists:
+                        if artist is not None:
+                            artistAlbumMetaData[artistID]['Artists'][artist.name] += 1
+
+                    styles = albumData.profile.style
+                    if not isinstance(styles, list):
+                        styles = [styles]
+                    for style in styles:
+                        if style is not None:
+                            artistAlbumMetaData[artistID]['Style'][style.name] += 1
+                            
+                            
+                            
         savenames = {"RefToID": albumRefToID, "NameToID": albumNameToID, "NameToRef": albumNameToRef,
                      "IDToRef": albumIDToRef, "IDToName": albumIDToName, "RefToName": albumRefToName}
         for basename,savedata in savenames.items():
@@ -425,6 +472,10 @@ class albums():
                                                         
         savename = setFile(self.disc.getDiscogDBDir(), "AlbumIDToArtistID.p")
         print("Saving {0} known artists to {1}".format(len(albumIDToArtistID), savename))
-        saveFile(ifile=savename, idata=albumIDToArtistID, debug=True)
+        saveFile(ifile=savename, idata=albumIDToArtistID, debug=True)                       
+                                                        
+        savename = setFile(self.disc.getDiscogDBDir(), "AlbumArtistMetaData.p")
+        print("Saving {0} known artists to {1}".format(len(artistAlbumMetaData), savename))
+        saveFile(ifile=savename, idata=artistAlbumMetaData, debug=True)
         
         elapsed(start, cmt)
