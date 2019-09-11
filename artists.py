@@ -205,7 +205,7 @@ class artists():
                 continue
         
             discID   = self.discogsUtils.getArtistID(href)
-            url      = self.getArtistRef(href)
+            url      = self.getArtistURL(href)
             savename = self.getArtistSavename(discID)
 
             print(iArtist,'/',len(artistDB),'\t:',len(discID),'\t',url)

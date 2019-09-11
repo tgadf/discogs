@@ -11,14 +11,11 @@ from time import sleep
 from collections import Counter
 
 
-
-
-
 class discogs():
     def __init__(self):        
         self.name       = "Discog"
-        self.localpath  = setDir("/Users/tgadfort/Documents/music", self.name)
-        self.savepath   = setDir("/Volumes/Music", self.name)
+        self.localpath  = setDir("/Users/tgadfort/Music", self.name, forceExist=False)
+        self.savepath   = setDir("/Volumes/Music", self.name, forceExist=False)
         self.codepath   = getcwd()
         
         self.maxModVal  = 100
@@ -63,6 +60,8 @@ class discogs():
             print("Warning! Local Discog Directory {0} is not Available".format(self.getLocalDir()))
             self.localpath = None
         else:
+            if self.savepath is None:
+                self.savepath = self.getLocalDir()
             if debug:
                 print("Local Discog Directory {0} is Available".format(self.getLocalDir()))
         
@@ -205,16 +204,30 @@ class discogs():
     
 
 
+
     ###############################################################################
     # Discog DB Names
     ###############################################################################
-    def getDBData(self, dbname, prefix):
+    def getDBData(self, dbname, prefix, returnName=False):
         savename = setFile(self.getDiscogDBDir(), "{0}{1}.p".format(prefix, dbname))
+        if returnName is True:
+            return savename
         if not isFile(savename):
             raise ValueError("Could not find {0}".format(savename))
         data = getFile(savename, debug=True)
         return data
-        
+    
+    
+    ###############################################################################
+    # Master Discogs DB
+    ###############################################################################
+    def getMasterDiscogsDB(self):
+        return self.getDBData("DB", "Master")
+    
+    def getMasterDiscogsDBFilename(self):
+        savename = self.getDBData("DB", "Master", returnName=True)
+        return savename
+    
         
     ##################################  Artists ##################################
     def getArtistNameToIDData(self):

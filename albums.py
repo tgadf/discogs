@@ -77,7 +77,7 @@ class albums():
         saveJoblib(data=albumdata, filename=savename, compress=True)
             
         
-    def downloadAlbumURLData(self, url, savename, artistID, sleeptime=2.5):
+    def downloadAlbumURLData(self, url, savename, artistID, sleeptime=1.75):
         ## Download URL Data
         print("Downloading {0}".format(url))
         albumdata = self.downloadAlbumURL(url)
@@ -124,6 +124,9 @@ class albums():
         
         
     def downloadAlbumModValData(self, modVal, mediaTypes=["Albums"], maxAlbums=None, debug=False):
+        
+        from datetime import datetime as dt
+        
         maxModVal = self.modVal
         
         albumsDir = self.getAlbumsDir()
@@ -134,45 +137,73 @@ class albums():
         dbdata = getFile(dbname, version=3)
         print("Found {0} Artists".format(len(dbdata)))
         
-        artistModDir = setSubDir(albumsDir, str(modVal))
+        artistModDir = setSubDir(albumsDir, str(modVal))        
             
         nArtists = len(dbdata)
         iArtists = 0
+        
+        startTime  = dt.now()
+        nDownloads = 0
+        
         for artistID, artistData in dbdata.items():
             iArtists += 1
-            
-            print(iArtists,'/',nArtists,'\t:',artistData.ID.ID,'\t',artistData.artist.name)
+    
             artistIDDir = setDir(artistModDir, artistID)
+
+            downloadedFiles = findExt(artistIDDir, ext=".p")
+            print(iArtists,'/',nArtists,'\t:',len(downloadedFiles),'\t',artistData.ID.ID,'\t',artistData.artist.name)
+
             media = artistData.media.media
             for mediaType, mediaTypeData in media.items():
                 if mediaTypes is not None:
                     if mediaType not in mediaTypes:
                         continue
-                nget = 0
-                print("\t{0} entries of type {1}".format(len(mediaTypeData), mediaType))
-                for mediaIDData in mediaTypeData:
-                    mediaID     = mediaIDData.code
-                    albumName   = mediaIDData.album
-                    albumArtist = mediaIDData.artist[0].ID.ID
-                    #print("\t\t",mediaID,'\t',albumArtist,'\t',albumName)
-                    savename = setFile(artistIDDir, "{0}.p".format(mediaID))
-                    if isFile(savename):
-                        continue
-                    if maxAlbums is not None:
-                        if nget >= maxAlbums:
-                            break
-     
+
+                nget = 0        
+                toGetMediaIDs = {mediaIDData.code: mediaIDData.url for mediaIDData in mediaTypeData}
+
+                toGet = {}
+                known = {}
+                for albumID,albumURL in toGetMediaIDs.items():
+                    savename = self.getAlbumSavename(artistID, albumID)                    
+                    if not isFile(savename):
+                        toGet[albumURL] = savename
+                    else:
+                        known[albumURL] = savename
+
+                nToGet = len(toGetMediaIDs)-len(toGet)
+                print("\tDownloaded {0}/{1} entries of type {2}".format(nToGet, len(toGetMediaIDs), mediaType))
+                for albumURL,savename in toGet.items():
+                    if len(known) >= maxAlbums:
+                        break               
+                    known[albumURL] = savename
+                    
                     baseURL = self.disc.discogURL
-                    url = urllib.parse.urljoin(baseURL, quote(mediaIDData.url))
-                    self.downloadAlbumURLData(url, savename, artistID, sleeptime=2.0)
-                    nget += 1
+                    url = urllib.parse.urljoin(baseURL, quote(albumURL))
+                    self.downloadAlbumURLData(url, savename, artistID)
+                    nDownloads += 1
+                    
+                    if nDownloads % 25 == 0:
+                        deltaT = ((dt.now() - startTime).seconds)/60.0
+                        rate = nDownloads / deltaT
+                        print("")
+                        print("=============================================================================================")
+                        print("== Download Rate: {0} / {1} = {2}".format(nDownloads, round(deltaT,1), round(rate,1)))
+                        print("=============================================================================================")
+                        print("")
+
+
+        
         
 
     def downloadAlbumsFromArtists(self, mediaTypes=["Albums"], maxAlbums=None, debug=False, rev=False, rand=False):
         maxModVal  = self.disc.getMaxModVal()
         #for modVal in ['NAN'] + 
         if rand:
-            for modVal in shuffle(list(range(maxModVal))):
+            from random import shuffle
+            modList = list(range(maxModVal))
+            shuffle(modList)
+            for modVal in modList:
                 self.downloadAlbumModValData(modVal, mediaTypes, maxAlbums, debug)
         elif rev:
             for modVal in list(reversed(list(range(maxModVal)))):
@@ -326,6 +357,7 @@ class albums():
         
         toget    = Counter()
         togetmap = {}
+
         for modVal in ['NAN'] + list(range(self.disc.getMaxModVal())):
             db = self.disc.getAlbumsDBModValData(modVal)
             for artistID,artistData in db.items():
