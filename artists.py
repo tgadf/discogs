@@ -56,6 +56,10 @@ class artists():
     # Artist Info
     ###############################################################################
     def getArtistURL(self, artistRef, page=1):
+        if artistRef.startswith("/artist/") is False:
+            print("Artist Ref needs to start with /artist/")
+            return None
+        
         baseURL = self.disc.discogURL
         url     = urllib.parse.urljoin(baseURL, quote(artistRef))
         url     = urllib.parse.urljoin(url, "?sort=year%2Casc&limit=500") ## Make sure we get 500 entries)
@@ -83,7 +87,7 @@ class artists():
     ###############################################################################
     # Artist Downloads
     ###############################################################################
-    def downloadArtistURL(self, url, savename, parse=True, force=False, debug=False):
+    def downloadArtistURL(self, url, savename, parse=True, force=False, debug=False, sleeptime=2):
         if isFile(savename):
             if debug:
                 print("{0} exists.".format(savename))
@@ -128,8 +132,8 @@ class artists():
             print("Saving {0}".format(savename))
         saveJoblib(data=data, filename=savename, compress=True)
         if debug:
-            print("Done. Sleeping for 2 seconds")
-        sleep(2)
+            print("Done. Sleeping for {0} seconds".format(sleeptime))
+        sleep(sleeptime)
         
         if isFile(savename):
             return True
@@ -263,14 +267,14 @@ class artists():
         
         for j,ifile in enumerate(files):
             if force is True:
-                if j % 250 == 0:
+                if j % 500 == 0:
                     print("\tProcessed {0}/{1} files.".format(j,len(files)))
                     
             
             info     = artistInfo.getData(ifile)
             artistID = info.ID.ID
             
-            print(artistID,'\t',sum([len(x) for x in dbdata[artistID].media.media.values()]),end="\t")
+            #print(artistID,'\t',sum([len(x) for x in dbdata[artistID].media.media.values()]),end="\t")
 
             keys = list(set(list(info.media.media.keys()) + list(dbdata[artistID].media.media.keys())))
             for k in keys:
@@ -299,7 +303,10 @@ class artists():
         return saveIt
     
     
-    def parseArtistModValFiles(self, modVal, force=False, debug=False):
+    def parseArtistModValFiles(self, modVal, force=False, debug=False):        
+        from os import path
+        from datetime import datetime, timedelta
+
         print("Parsing Artist Files For ModVal {0}".format(modVal))
         artistInfo = artist()
 
@@ -320,12 +327,15 @@ class artists():
             dbdata = {}
 
         saveIt = 0
+        now = datetime.now()
         for j,ifile in enumerate(files):
             if force is True:
-                if j % 250 == 0:
+                if j % 500 == 0:
                     print("\tProcessed {0}/{1} files.".format(j,len(files)))
             artistID = getBaseFilename(ifile)
-            if dbdata.get(artistID) is None:
+            isKnown  = dbdata.get(artistID)
+            recent   = datetime.fromtimestamp(path.getctime(ifile))
+            if isKnown is None or (now-recent).days < 1:
                 saveIt += 1
                 info   = artistInfo.getData(ifile)
                 
@@ -606,22 +616,24 @@ class artists():
 
                     
                 artistVariations = artistData.profile.variations
-                artistMedia      = artistData.media.media
-                if artistMedia is not None:
-                    for mediaName,mediaData in artistMedia.items():
-                        if not isinstance(mediaData, list):
-                            raise ValueError("MediaData is a {0}".format(type(mediaData)))
-                        for mediaValues in mediaData:
-                            year = mediaValues.year
-                            try:
-                                year = int(year)
-                            except:
-                                continue
-                            if years is None:
-                                years = [year, year]
-                            else:
-                                years[0] = min([year, years[0]])
-                                years[1] = max([year, years[1]])
+                
+                if False:
+                    artistMedia      = artistData.media.media
+                    if artistMedia is not None:
+                        for mediaName,mediaData in artistMedia.items():
+                            if not isinstance(mediaData, list):
+                                raise ValueError("MediaData is a {0}".format(type(mediaData)))
+                            for mediaValues in mediaData:
+                                year = mediaValues.year
+                                try:
+                                    year = int(year)
+                                except:
+                                    continue
+                                if years is None:
+                                    years = [year, year]
+                                else:
+                                    years[0] = min([year, years[0]])
+                                    years[1] = max([year, years[1]])
                         
                 if artistVariations is not None:
                     for artistURLData in artistVariations:

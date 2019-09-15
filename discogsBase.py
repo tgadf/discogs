@@ -77,8 +77,8 @@ class discogs():
         names = ["search", "search-artists"]
         dirnames += ["{0}".format(x) for x in names]
         
-        names = ["special", "artist-special"]
-        dirnames += ["{0}".format(x) for x in names]
+        #names = ["special", "artist-special"]
+        #dirnames += ["{0}".format(x) for x in names]
         
         dirnames += ["db"]
         
