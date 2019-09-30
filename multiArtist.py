@@ -7,7 +7,7 @@ class multiArtist:
         self.exact    = exact
         
         self.basicdelims = ["Duet With", "Presents", "Featuring"]
-        self.delims = [",", "&", " And ", "+", "/", "With The", " with ", " With ", " y ", " Y ", " feat.", " Feat. ", " x ", " X "]
+        self.delims = [",", "&", " And ", "+", "/", "With The", " with ", " With ", " y ", " Y ", " feat.",  " ft.", " Feat. ", " x ", " X "]
         self.discArtists = []
         if self.discdata is not None:
             self.discArtists = [x for x in discdata.keys() if x is not None]

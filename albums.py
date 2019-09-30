@@ -145,6 +145,8 @@ class albums():
         startTime  = dt.now()
         nDownloads = 0
         
+        knownAlbums = self.disc.getDiagnosticAlbumIDs()
+        
         for artistID, artistData in dbdata.items():
             iArtists += 1
     
@@ -180,8 +182,17 @@ class albums():
                     
                     baseURL = self.disc.discogURL
                     url = urllib.parse.urljoin(baseURL, quote(albumURL))
-                    self.downloadAlbumURLData(url, savename, artistID)
+                    if knownAlbums.get(url) is True:
+                        print("\t  Previously downloaded.")
+                        continue
+                    retval = self.downloadAlbumURLData(url, savename, artistID)
                     nDownloads += 1
+                    
+                    if retval is False:
+                        knownAlbums[url] = True
+                        if len(knownAlbums) % 10 == 0:
+                            self.disc.saveDiagnosticAlbumIDs(knownAlbums)
+                            sleep(2)
                     
                     if nDownloads % 25 == 0:
                         deltaT = ((dt.now() - startTime).seconds)/60.0

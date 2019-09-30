@@ -317,8 +317,23 @@ class artists():
         
         dirVal = setDir(artistDir, str(modVal))
         files  = findExt(dirVal, ext='.p')
-
         dbname = setFile(artistDBDir, "{0}-DB.p".format(modVal))
+
+        
+        
+        ### Check for recent files
+        lastModified = datetime.fromtimestamp(path.getctime(dbname))
+        now    = datetime.now()
+        if force is False:
+            numRecent = [ifile for ifile in files if datetime.fromtimestamp(path.getctime(ifile)) > lastModified]
+            numNew    = [ifile for ifile in files if (now-datetime.fromtimestamp(path.getctime(ifile))).days < 1]
+            if len(numRecent) == 0:
+                print("  ===> Found {0} files, but there are no new files to parse so skipping.".format(len(files)))
+                return 0
+            else:
+                print("  ===> Found {0} files. There are {1} new files to parse.".format(len(files), len(numRecent)))
+
+                
         if force is False:
             dbdata = getFile(dbname, version=3)
         else:
@@ -327,7 +342,6 @@ class artists():
             dbdata = {}
 
         saveIt = 0
-        now = datetime.now()
         for j,ifile in enumerate(files):
             if force is True:
                 if j % 500 == 0:
@@ -335,7 +349,7 @@ class artists():
             artistID = getBaseFilename(ifile)
             isKnown  = dbdata.get(artistID)
             recent   = datetime.fromtimestamp(path.getctime(ifile))
-            if isKnown is None or (now-recent).days < 1:
+            if isKnown is None or recent > lastModified:
                 saveIt += 1
                 info   = artistInfo.getData(ifile)
                 

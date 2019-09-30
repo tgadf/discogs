@@ -67,18 +67,18 @@ class discogs():
         
         dirnames    = []
         dbdirnames  = []
-        names = ["base", "collections", "artists", "albums"]
+        names = ["collections", "artists", "albums"]
         dirnames += ["{0}".format(x) for x in names]
         dirnames += ["{0}-db".format(x) for x in names]
         
-        names = ["artists-extra"]
-        dirnames += ["{0}".format(x) for x in names]
-
-        names = ["search", "search-artists"]
-        dirnames += ["{0}".format(x) for x in names]
-        
-        #names = ["special", "artist-special"]
+        #names = ["artists-extra"]
         #dirnames += ["{0}".format(x) for x in names]
+
+        #names = ["search", "search-artists"]
+        #dirnames += ["{0}".format(x) for x in names]
+        
+        names = ["diagnostic"]
+        dirnames += ["{0}".format(x) for x in names]
         
         dirnames += ["db"]
         
@@ -128,6 +128,13 @@ class discogs():
 
     def getCollectionsDBDir(self):
         return self.dirnames["collections-db"]
+
+
+    ###############################################################################
+    # Discog Diagnostic Directories
+    ###############################################################################
+    def getDiagnosticDir(self):
+        return self.dirnames["diagnostic"]
 
 
     ###############################################################################
@@ -202,7 +209,17 @@ class discogs():
         return self.localpath
     
     
-
+    ##################################  Diagnostic ##################################
+    def getDiagnosticAlbumIDs(self):
+        savename = setFile(self.getDiagnosticDir(), "albumKnownIDs.p")
+        if not isFile(savename):
+            raise ValueError("Could not find {0}".format(savename))
+        data = getFile(savename, debug=True)
+        return data
+    
+    def saveDiagnosticAlbumIDs(self, albumIDs):
+        savename = setFile(self.getDiagnosticDir(), "albumKnownIDs.p")
+        saveFile(ifile=savename, idata=albumIDs)
 
 
     ###############################################################################
