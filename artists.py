@@ -1,4 +1,4 @@
-from fsUtils import setFile, isFile, setDir, isDir, mkDir, mkSubDir
+from fsUtils import setFile, isFile, setDir, isDir, mkDir, mkSubDir, setSubFile
 from fsUtils import removeFile
 from fileUtils import getBasename, getBaseFilename
 from ioUtils import getFile, saveFile, saveJoblib
@@ -301,6 +301,7 @@ class artists():
             saveJoblib(data=dbdata, filename=savename, compress=True)
             
         return saveIt
+
     
     
     def parseArtistModValFiles(self, modVal, force=False, debug=False):        
@@ -367,6 +368,9 @@ class artists():
             savename = setFile(artistDBDir, "{0}-DB.p".format(modVal))     
             print("Saving {0} new artist IDs to {1}".format(saveIt, savename))
             saveJoblib(data=dbdata, filename=savename, compress=True)
+            
+            self.createArtistModValMetadata(modVal=modVal, db=dbdata, debug=debug)
+            self.createArtistAlbumModValMetadata(modVal=modVal, db=dbdata, debug=debug)
             
         return saveIt
     
@@ -544,6 +548,46 @@ class artists():
     ################################################################################
     # Collect Metadata About Artists (4)
     ################################################################################
+    def createArtistModValMetadata(self, modVal, db=None, debug=False):
+        if db is None:
+            db = self.disc.getArtistsDBModValData(modVal)
+    
+        artistIDMetadata = {k: [v.artist.name, v.url.url] for k,v in db.items()}
+        
+        for artistID,artistData in db.items():
+            if artistData.profile.variations is not None:
+                artistIDMetadata[artistID].append([v2.name for v2 in artistData.profile.variations])
+            else:
+                artistIDMetadata[artistID].append([artistData.artist.name])
+        
+        artistDBDir = self.disc.getArtistsDBDir()     
+        savename    = setSubFile(artistDBDir, "metadata", "{0}-Metadata.p".format(modVal))
+        
+        print("Saving {0} new artist IDs name data to {1}".format(len(artistIDMetadata), savename))
+        saveJoblib(data=artistIDMetadata, filename=savename, compress=True)
+        
+        
+    def createArtistAlbumModValMetadata(self, modVal, db=None, debug=False):
+        if db is None:
+            db = self.disc.getArtistsDBModValData(modVal)
+        
+        artistIDMetadata = {}
+        for artistID,artistData in db.items():
+            artistIDMetadata[artistID] = {}
+            for mediaName,mediaData in artistData.media.media.items():
+                albumURLs  = {mediaValues.code: mediaValues.url for mediaValues in mediaData}
+                albumNames = {mediaValues.code: mediaValues.album for mediaValues in mediaData}
+                artistIDMetadata[artistID] = {mediaName: [albumNames, albumURLs]}
+        
+        artistDBDir = self.disc.getArtistsDBDir()     
+        savename    = setSubFile(artistDBDir, "metadata", "{0}-MediaMetadata.p".format(modVal))
+        
+        print("Saving {0} new artist IDs media data to {1}".format(len(artistIDMetadata), savename))
+        saveJoblib(data=artistIDMetadata, filename=savename, compress=True)
+
+
+
+        
     def buildMetadata(self, force=False, doAlbums=False):
         start, cmt = clock("Building Artist Metadata DB")
         

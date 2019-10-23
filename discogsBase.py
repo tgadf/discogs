@@ -71,6 +71,9 @@ class discogs():
         dirnames += ["{0}".format(x) for x in names]
         dirnames += ["{0}-db".format(x) for x in names]
         
+        names = ["artists", "albums"]
+        dirnames += ["{0}-db/metadata".format(x) for x in names]
+
         #names = ["artists-extra"]
         #dirnames += ["{0}".format(x) for x in names]
 
@@ -149,6 +152,9 @@ class discogs():
     def getArtistsDBDir(self):
         return self.dirnames["artists-db"]
     
+    def getArtistsMetadataDBDir(self):
+        return self.dirnames["artists-db/metadata"]
+    
     def getArtistsDBFiles(self):
         dbfiles = findExt(self.getArtistsDBDir(), "*-DB.p")
         return dbfiles
@@ -174,8 +180,23 @@ class discogs():
     def getAlbumsDBDir(self):
         return self.dirnames["albums-db"]
     
+    def getAlbumsMetadataDBDir(self):
+        return self.dirnames["albums-db/metadata"]
+    
     def getAlbumsDBFiles(self):
         dbfiles = findExt(self.getAlbumsDBDir(), "*-DB.p")
+        return dbfiles
+    
+    def getAlbumsMetadataFiles(self):
+        dbfiles = findExt(self.getAlbumsMetadataDBDir(), "*-AlbumMetadata.p")
+        return dbfiles
+    
+    def getAlbumsArtistMetadataFiles(self):
+        dbfiles = findExt(self.getAlbumsMetadataDBDir(), "*-ArtistMetadata.p")
+        return dbfiles
+    
+    def getAlbumsArtistsFiles(self):
+        dbfiles = findExt(self.getAlbumsMetadataDBDir(), "*-ArtistAlbums.p")
         return dbfiles
     
     def getAlbumsDBModValFilename(self, modVal):
@@ -207,6 +228,11 @@ class discogs():
 
     def getMusicDir(self):
         return self.localpath
+    
+    
+    ##################################  Helper ######################################
+    def flip(self, db):
+        return {v: k for k,v in db.items()}
     
     
     ##################################  Diagnostic ##################################
@@ -247,44 +273,51 @@ class discogs():
     
         
     ##################################  Artists ##################################
-    def getArtistNameToIDData(self):
-        return self.getDBData("NameToID", "Artist")
-        
-    def getArtistNameToIDsData(self):
-        return self.getDBData("VariationNameToIDs", "Artist")
-        
     def getArtistIDToNameData(self):
         return self.getDBData("IDToName", "Artist")
-        
-    def getArtistRefToIDData(self):
-        return self.getDBData("RefToID", "Artist")
+    
+    def getArtistNameToIDData(self):
+        return self.flip(self.getArtistIDToNameData())
         
     def getArtistIDToRefData(self):
         return self.getDBData("IDToRef", "Artist")
         
-    def getArtistRefToNameData(self):
-        return self.getDBData("RefToName", "Artist")
+    def getArtistIDToVariationsData(self):
+        return self.getDBData("IDToVariations", "Artist")
+
+    def getArtistIDToAlbumNamesData(self):
+        return self.getDBData("IDToAlbumNames", "Artist")
+
+    def getArtistIDToAlbumRefsData(self):
+        return self.getDBData("IDToAlbumRefs", "Artist")
+
+    def getArtistIDToCoreAlbumNamesData(self):
+        return self.getDBData("IDToCoreAlbumNames", "Artist")
+
+    def getArtistIDToCoreAlbumRefsData(self):
+        return self.getDBData("IDToCoreAlbumRefs", "Artist")
         
-    def getArtistNameToRefData(self):
-        return self.getDBData("NameToRef", "Artist")
+    def getArtistIDToGenreData(self):
+        return self.getDBData("IDToGenre", "Artist")
         
-    def getArtistNameToRefsData(self):
-        return self.getDBData("NameToRefs", "Artist")
-    
-    def getArtistRefCountsData(self):
-        return self.getDBData("RefCounts", "artist")
+    def getArtistIDToStyleData(self):
+        return self.getDBData("IDToStyle", "Artist")
         
-    def getKnownArtistIDsData(self):
-        return self.getDBData("KnownArtistIDs", "Artist")
-        
-    def getToGetData(self):
-        return self.getDBData("ToGet")
-    
-    def getArtistVariationNameToIDsData(self):
-        return self.getDBData("VariationNameToIDs", "Artist")
+    def getArtistIDToCollaborationData(self):
+        return self.getDBData("IDToCollaborations", "Artist")
     
     
     ##################################  Albums ##################################
+    def getAlbumIDToNameData(self):
+        return self.getDBData("IDToName", "Album")
+    
+    def getAlbumIDToRefData(self):
+        return self.getDBData("IDToRef", "Album")
+    
+    def getAlbumIDToArtistsData(self):
+        return self.getDBData("IDToArtists", "Album")
+    
+    
     def getAlbumNameToIDData(self):
         return self.getDBData("NameToID", "Album")
     
@@ -299,12 +332,6 @@ class discogs():
     
     def getAlbumRefToNameData(self):
         return self.getDBData("RefToName", "Album")
-
-    def getAlbumIDToNameData(self):
-        return self.getDBData("IDToName", "Album")
-    
-    def getAlbumIDToRefData(self):
-        return self.getDBData("IDToRef", "Album")
     
     def getAlbumIDToArtistIDData(self):
         return self.getDBData("IDToArtistID", "Album")
@@ -358,9 +385,6 @@ class discogs():
     
     def getArtistIDCoreAlbumRefs(self):
         return self.getDBData("IDCoreAlbumRefs", "Artist")
-
-    def getArtistIDAlbumNames(self):
-        return self.getDBData("IDAlbumNames", "Artist")
 
     def getArtistIDAlbumIDs(self):
         return self.getDBData("IDAlbumIDs", "Artist")
