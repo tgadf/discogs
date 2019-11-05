@@ -25,7 +25,7 @@ class discogs():
                 
         self.createDirectories(debug=True)
         
-        self.unitTests()
+        #self.unitTests()
         
     ## Improve upon this later
     def unitTests(self):

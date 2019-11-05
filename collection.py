@@ -1,4 +1,4 @@
-from fsUtils import setFile, isFile, setDir, isDir, moveFile, removeFile
+from fsUtils import setFile, isFile, setDir, isDir, moveFile, removeFile, mkDir
 from fileUtils import getBasename
 from ioUtils import getFile, saveFile
 from webUtils import getWebData, getHTML
