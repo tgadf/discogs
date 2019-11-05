@@ -134,7 +134,11 @@ class albums():
         nDownloads   = 0
 
         downloadedFiles = findExt(artistIDDir, ext=".p")
-        #print(iArtists,'/',nArtists,'\t:',len(downloadedFiles),'\t',artistData.ID.ID,'\t',artistData.artist.name)
+        allFiles        = sum([len(x) for x in artistData.media.media.values()])
+
+        
+        
+        print(len(downloadedFiles),'/',allFiles,'  ','\t',artistData.ID.ID,'\t',artistData.artist.name)
 
         media = artistData.media.media
         for mediaType, mediaTypeData in media.items():
@@ -155,7 +159,7 @@ class albums():
                     known[albumURL] = savename
 
             nToGet = len(toGetMediaIDs)-len(toGet)
-            print("\tDownloaded {0}/{1} entries of type {2}".format(nToGet, len(toGetMediaIDs), mediaType))
+            #print("\tDownloaded {0}/{1} entries of type {2}".format(nToGet, len(toGetMediaIDs), mediaType))
             for albumURL,savename in toGet.items():
                 if maxAlbums is not None:
                     if len(known) >= maxAlbums:
@@ -165,7 +169,7 @@ class albums():
                 baseURL = self.disc.discogURL
                 url = urllib.parse.urljoin(baseURL, quote(albumURL))
                 if knownAlbums.get(url) is True:
-                    print("\t  Previously downloaded.")
+                    #print("\t  Already known and previously downloaded.")
                     continue
                 retval = self.downloadAlbumURLData(url, savename, artistID)
                 nDownloads += 1

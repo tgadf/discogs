@@ -323,11 +323,11 @@ class artists():
         
         
         ### Check for recent files
-        lastModified = datetime.fromtimestamp(path.getctime(dbname))
+        lastModified = datetime.fromtimestamp(path.getmtime(dbname))
         now    = datetime.now()
         if force is False:
-            numRecent = [ifile for ifile in files if datetime.fromtimestamp(path.getctime(ifile)) > lastModified]
-            numNew    = [ifile for ifile in files if (now-datetime.fromtimestamp(path.getctime(ifile))).days < 1]
+            numRecent = [ifile for ifile in files if datetime.fromtimestamp(path.getmtime(ifile)) > lastModified]
+            numNew    = [ifile for ifile in files if (now-datetime.fromtimestamp(path.getmtime(ifile))).days < 1]
             if len(numRecent) == 0:
                 print("  ===> Found {0} files, but there are no new files to parse so skipping.".format(len(files)))
                 return 0
@@ -577,7 +577,7 @@ class artists():
             for mediaName,mediaData in artistData.media.media.items():
                 albumURLs  = {mediaValues.code: mediaValues.url for mediaValues in mediaData}
                 albumNames = {mediaValues.code: mediaValues.album for mediaValues in mediaData}
-                artistIDMetadata[artistID] = {mediaName: [albumNames, albumURLs]}
+                artistIDMetadata[artistID][mediaName] = [albumNames, albumURLs]
         
         artistDBDir = self.disc.getArtistsDBDir()     
         savename    = setSubFile(artistDBDir, "metadata", "{0}-MediaMetadata.p".format(modVal))
