@@ -271,6 +271,27 @@ class discogs():
         savename = self.getDBData("DB", "Master", returnName=True)
         return savename
     
+    def getMasterArtistDiscogsDB(self):
+        return self.getDBData("DB", "MasterArtist")
+    
+    def getMasterArtistDiscogsDBFilename(self):
+        savename = self.getDBData("DB", "MasterArtist", returnName=True)
+        return savename
+    
+    def getMasterArtistMetadataDiscogsDB(self):
+        return self.getDBData("DB", "MasterArtistMetadata")
+    
+    def getMasterArtistMetadataDiscogsDBFilename(self):
+        savename = self.getDBData("DB", "MasterArtistMetadata", returnName=True)
+        return savename
+    
+    def getMasterAlbumDiscogsDB(self):
+        return self.getDBData("DB", "MasterAlbum")
+    
+    def getMasterAlbumDiscogsDBFilename(self):
+        savename = self.getDBData("DB", "MasterAlbum", returnName=True)
+        return savename
+    
         
     ##################################  Artists ##################################
     def getArtistIDToNameData(self):

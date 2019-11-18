@@ -134,6 +134,9 @@ class albums():
         nDownloads   = 0
 
         downloadedFiles = findExt(artistIDDir, ext=".p")
+        print(type(artistData))
+        print(type(artistData.media))
+        print(type(artistData.media.media))
         allFiles        = sum([len(x) for x in artistData.media.media.values()])
 
         
@@ -213,7 +216,7 @@ class albums():
         
         for artistID, artistData in dbdata.items():
             iArtists   += 1
-            nDownloads += self.downloadAlbumFromArtistData(artistID, artistID, iArtists, mediaTypes, maxAlbums, knownAlbums, debug)
+            nDownloads += self.downloadAlbumFromArtistData(artistID, artistData, iArtists, mediaTypes, maxAlbums, knownAlbums, debug)
             if nDownloads % 5 == 0:                    
                 deltaT = ((dt.now() - startTime).seconds)/60.0
                 rate = nDownloads / deltaT
