@@ -134,14 +134,14 @@ class albums():
         nDownloads   = 0
 
         downloadedFiles = findExt(artistIDDir, ext=".p")
-        print(type(artistData))
-        print(type(artistData.media))
-        print(type(artistData.media.media))
+        #print(type(artistData))
+        #print(type(artistData.media))
+        #print(type(artistData.media.media))
         allFiles        = sum([len(x) for x in artistData.media.media.values()])
 
         
         
-        print(len(downloadedFiles),'/',allFiles,'  ','\t',artistData.ID.ID,'\t',artistData.artist.name)
+        print(len(downloadedFiles),'/',allFiles,'  ','\t',nKnown,'\t',artistData.ID.ID,'\t',artistData.artist.name)
 
         media = artistData.media.media
         for mediaType, mediaTypeData in media.items():
@@ -172,7 +172,7 @@ class albums():
                 baseURL = self.disc.discogURL
                 url = urllib.parse.urljoin(baseURL, quote(albumURL))
                 if knownAlbums.get(url) is True:
-                    #print("\t  Already known and previously downloaded.")
+                    print("\t  Already known and previously downloaded.")
                     continue
                 retval = self.downloadAlbumURLData(url, savename, artistID)
                 nDownloads += 1
@@ -180,12 +180,18 @@ class albums():
                 if retval is False:
                     knownAlbums[url] = True
                     if len(knownAlbums) % 50 == 0:
+                        print("!"*100)
+                        print("Saving {0} known albums...".format(len(knownAlbums)))
+                        print("!"*100)
                         self.disc.saveDiagnosticAlbumIDs(knownAlbums)
                         sleep(2)
 
 
 
         if len(knownAlbums) > nKnown:
+            print("!"*100)
+            print("Saving {0} known albums...".format(len(knownAlbums)))
+            print("!"*100)
             self.disc.saveDiagnosticAlbumIDs(knownAlbums)
         return nDownloads
         
@@ -217,8 +223,10 @@ class albums():
         for artistID, artistData in dbdata.items():
             iArtists   += 1
             nDownloads += self.downloadAlbumFromArtistData(artistID, artistData, iArtists, mediaTypes, maxAlbums, knownAlbums, debug)
-            if nDownloads % 5 == 0:                    
+            if nDownloads % 5 == 0 and nDownloads > 0:
                 deltaT = ((dt.now() - startTime).seconds)/60.0
+                if deltaT <= 0:
+                    deltaT = 1
                 rate = nDownloads / deltaT
                 print("")
                 print("=============================================================================================")

@@ -119,20 +119,22 @@ class artists():
                     raise ValueError("Problem saving {0} with artistID {1}".format(savename, ID))
                 
             if ID != artistID:
-                removeFile(savename)
-                savename = self.getArtistSavename(ID)
                 print("  File ID != Artist ID. Renaming to {0}".format(savename))
-                
+
+                savename_test = self.getArtistSavename(ID)
+                if force is False and isFile(savename_test):
+                    print("{0} exists.".format(savename_test))
+                    return False
+
             
         if force is False and isFile(savename):
+            print("{0} exists.".format(savename))
             return True
             
             
-        if debug:
-            print("Saving {0}".format(savename))
+        print("Saving {0} (force={1})".format(savename, force))
         saveJoblib(data=data, filename=savename, compress=True)
-        if debug:
-            print("Done. Sleeping for {0} seconds".format(sleeptime))
+        print("Done. Sleeping for {0} seconds".format(sleeptime))
         sleep(sleeptime)
         
         if isFile(savename):
