@@ -140,8 +140,8 @@ class albums():
         allFiles        = sum([len(x) for x in artistData.media.media.values()])
 
         
-        
-        print(len(downloadedFiles),'/',allFiles,'  ','\t',nKnown,'\t',artistData.ID.ID,'\t',artistData.artist.name)
+        print("\n","="*30,"Artist ID --- {0}".format(artistID),"="*30)
+        print("  ",len(downloadedFiles),'/',allFiles,'  ','\t',nKnown,'\t',artistData.ID.ID,'\t',artistData.artist.name)
 
         media = artistData.media.media
         for mediaType, mediaTypeData in media.items():
@@ -154,6 +154,7 @@ class albums():
 
             toGet = {}
             known = {}
+            print("\t","Getting {0} media IDs".format(len(toGetMediaIDs)))
             for albumID,albumURL in toGetMediaIDs.items():
                 savename = self.getAlbumSavename(artistID, albumID)                    
                 if not isFile(savename):
