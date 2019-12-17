@@ -12,16 +12,24 @@ from collections import Counter
 
 
 class discogs():
-    def __init__(self):        
+    def __init__(self, base='discogs'):
         self.name       = "Discog"
         self.localpath  = setDir("/Users/tgadfort/Music", self.name, forceExist=False)
         self.savepath   = setDir("/Volumes/Music", self.name, forceExist=False)
         self.codepath   = getcwd()
         
         self.maxModVal  = 100
+        
+        self.base = base
 
-        self.discogURL       = "https://www.discogs.com/"        
-        self.discogSearchURL = "https://www.discogs.com/search/"        
+        if self.base == 'discogs':
+            self.discogURL       = "https://www.discogs.com/"        
+            self.discogSearchURL = "https://www.discogs.com/search/"        
+        elif self.base == 'allmusic':
+            self.discogURL       = "https://www.allmusic.com/"        
+            self.discogSearchURL = "https://www.allmusic.com/search/"    
+        else:
+            raise ValueError("Base is illegal: {0}".format(self.base))    
                 
         self.createDirectories(debug=True)
         
@@ -67,12 +75,22 @@ class discogs():
         
         dirnames    = []
         dbdirnames  = []
-        names = ["collections", "artists", "albums"]
-        dirnames += ["{0}".format(x) for x in names]
-        dirnames += ["{0}-db".format(x) for x in names]
-        
-        names = ["artists", "albums"]
-        dirnames += ["{0}-db/metadata".format(x) for x in names]
+        if self.base == 'discogs':
+            names = ["collections", "artists", "albums"]
+            dirnames += ["{0}".format(x) for x in names]
+            dirnames += ["{0}-db".format(x) for x in names]
+
+            names = ["artists", "albums"]
+            dirnames += ["{0}-db/metadata".format(x) for x in names]
+        elif self.base == 'allmusic':
+            names = ["artists-allmusic", "albums-allmusic"]
+            dirnames += ["{0}".format(x) for x in names]
+            dirnames += ["{0}-db".format(x) for x in names]
+            
+            names = ["artists-allmusic", "albums-allmusic"]
+            dirnames += ["{0}-db/metadata".format(x) for x in names]
+        else:
+            raise ValueError("Base is illegal: {0}".format(self.base))
 
         #names = ["artists-extra"]
         #dirnames += ["{0}".format(x) for x in names]
@@ -144,16 +162,36 @@ class discogs():
     # Discog Artist Directories
     ###############################################################################
     def getArtistsDir(self):
-        return self.dirnames["artists"]
+        if self.base == "discogs":
+            return self.dirnames["artists"]
+        elif self.base == "allmusic":
+            return self.dirnames["artists-allmusic"]
+        else:
+            raise ValueError("Base is illegal: {0}".format(self.base))
 
     def getArtistsExtraDir(self):
-        return self.dirnames["artists-extra"]
+        if self.base == "discogs":
+            return self.dirnames["artists-extra"]
+        elif self.base == "allmusic":
+            return self.dirnames["artists-extra-allmusic"]
+        else:
+            raise ValueError("Base is illegal: {0}".format(self.base))
 
     def getArtistsDBDir(self):
-        return self.dirnames["artists-db"]
+        if self.base == "discogs":
+            return self.dirnames["artists-db"]
+        elif self.base == "allmusic":
+            return self.dirnames["artists-db-allmusic"]
+        else:
+            raise ValueError("Base is illegal: {0}".format(self.base))
     
     def getArtistsMetadataDBDir(self):
-        return self.dirnames["artists-db/metadata"]
+        if self.base == "discogs":
+            return self.dirnames["artists-db/metadata"]
+        elif self.base == "allmusic":
+            return self.dirnames["artists-db-allmusic/metadata"]
+        else:
+            raise ValueError("Base is illegal: {0}".format(self.base))
     
     def getArtistsDBFiles(self):
         dbfiles = findExt(self.getArtistsDBDir(), "*-DB.p")
@@ -175,13 +213,28 @@ class discogs():
     # Discog Albums Directories
     ###############################################################################
     def getAlbumsDir(self):
-        return self.dirnames["albums"]
+        if self.base == "discogs":
+            return self.dirnames["albums"]
+        elif self.base == "allmusic":
+            return self.dirnames["albums-allmusic"]
+        else:
+            raise ValueError("Base is illegal: {0}".format(self.base))
 
     def getAlbumsDBDir(self):
-        return self.dirnames["albums-db"]
+        if self.base == "discogs":
+            return self.dirnames["albums-db"]
+        elif self.base == "allmusic":
+            return self.dirnames["albums-db-allmusic"]
+        else:
+            raise ValueError("Base is illegal: {0}".format(self.base))
     
     def getAlbumsMetadataDBDir(self):
-        return self.dirnames["albums-db/metadata"]
+        if self.base == "discogs":
+            return self.dirnames["albums-db/metadata"]
+        elif self.base == "allmusic":
+            return self.dirnames["albums-db-allmusic/metadata"]
+        else:
+            raise ValueError("Base is illegal: {0}".format(self.base))
     
     def getAlbumsDBFiles(self):
         dbfiles = findExt(self.getAlbumsDBDir(), "*-DB.p")

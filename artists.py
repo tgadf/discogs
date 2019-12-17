@@ -147,7 +147,7 @@ class artists():
     ################################################################################
     # Download Search Artist (2a)
     ################################################################################
-    def searchDiscogForArtist(self, artist, debug=True):
+    def searchDiscogForArtist(self, artist, debug=True, sleeptime=2):
         if self.prevSearches.get(artist) is not None:
             return
         if self.prevSearches.get(artist.upper()) is not None:
@@ -218,7 +218,7 @@ class artists():
             if isFile(savename):
                 continue
 
-            self.downloadArtistURL(url, savename)
+            self.downloadArtistURL(url, savename, sleeptime=sleeptime)
                 
             
 
