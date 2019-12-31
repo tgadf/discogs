@@ -330,6 +330,7 @@ def discConv(x):
     if x is None:
         return ""
     x = x.replace("/", "-")
+    x = x.replace("¡", "")
     while x.startswith(".") and len(x) > 1:
         x = x[1:]
     x = x.strip()

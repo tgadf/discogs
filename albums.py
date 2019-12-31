@@ -2,7 +2,7 @@ from fsUtils import setFile, isFile, setDir, isDir, mkDir, mkSubDir, setSubDir, 
 from fileUtils import getBasename, getBaseFilename, getDirBasics, getsize
 from ioUtils import getFile, saveFile, saveJoblib
 from webUtils import getWebData, getHTML, getURL
-from searchUtils import findExt, findPattern, findDirs
+from searchUtils import findExt, findPattern, findDirs, findWalkDirExt
 from timeUtils import clock, elapsed, update
 from collections import Counter
 from math import ceil
@@ -60,6 +60,14 @@ class albums():
         headers={'User-Agent':user_agent,} 
         return headers
         
+        
+        
+        
+    ###############################################################################
+    ###
+    ### Download Albums
+    ###
+    ###############################################################################
     def downloadAlbumURL(self, url):
         headers = self.getHeaders()
         try:
@@ -122,7 +130,7 @@ class albums():
         return True
     
     
-    def downloadAlbumFromArtistData(self, artistID, artistData, iArtists=None, mediaTypes=["Albums"], maxAlbums=None, knownAlbums=None, debug=False):
+    def downloadAlbumFromArtistData(self, artistID, artistData, iArtists=None, mediaTypes=["Albums"], maxAlbums=None, knownAlbums=None, debug=False): 
         if knownAlbums is None:
             knownAlbums = self.disc.getDiagnosticAlbumIDs()
         nKnown = len(knownAlbums)
@@ -133,59 +141,108 @@ class albums():
         artistIDDir  = setDir(artistModDir, artistID)
         nDownloads   = 0
 
-        downloadedFiles = findExt(artistIDDir, ext=".p")
-        #print(type(artistData))
-        #print(type(artistData.media))
-        #print(type(artistData.media.media))
-        allFiles        = sum([len(x) for x in artistData.media.media.values()])
+        files           = findWalkDirExt(artistIDDir, ext=".p")
 
-        
-        print("\n","="*30,"Artist ID --- {0}".format(artistID),"="*30)
-        print("  ",len(downloadedFiles),'/',allFiles,'  ','\t',nKnown,'\t',artistData.ID.ID,'\t',artistData.artist.name)
+        downloadedFiles = []
+        for k,v in files.items():
+            for v2 in v:
+                downloadedFiles.append(getBaseFilename(v2))
+        downloadedFiles = set(downloadedFiles)
 
+        codes = {}
+        codeMap = {}
         media = artistData.media.media
-        for mediaType, mediaTypeData in media.items():
-            if mediaTypes is not None:
-                if mediaType not in mediaTypes:
-                    continue
+        for k,v in media.items():
+            codes[k] = {v2.code: v2.url for v2 in v}
+            codeMap.update(codes[k])
+    
+        knownCodes = {}
+        togetCodes = {}
+        for k,v in codes.items():
+            knownCodes[k] = set(v).intersection(downloadedFiles)
+            togetCodes[k] = set(v).difference(downloadedFiles)        
+        
+        codesToDownload = {}
+        for mediaType in [k for k,v in knownCodes.items() if len(v) < maxAlbums]:
+            known = len(knownCodes[mediaType])
+            Nget  = max([maxAlbums-known,0])
+            codesToGet = list(togetCodes[mediaType])[:Nget]
+            codesToDownload.update({k: codeMap[k] for k in codesToGet})
 
-            nget = 0        
-            toGetMediaIDs = {mediaIDData.code: mediaIDData.url for mediaIDData in mediaTypeData}
+            
+        ### Check to get
+        if len(codesToDownload) == 0:
+            print("\tNo new albums to download")
+            return 0
+        
+        Ncodes      = sum([len(v) for v in codes.values()])
+        NknownCodes = sum([len(v) for v in knownCodes.values()])
+        NtogetCodes = sum([len(v) for v in togetCodes.values()])
 
-            toGet = {}
-            known = {}
-            print("\t","Getting {0} media IDs".format(len(toGetMediaIDs)))
-            for albumID,albumURL in toGetMediaIDs.items():
-                savename = self.getAlbumSavename(artistID, albumID)                    
-                if not isFile(savename):
-                    toGet[albumURL] = savename
-                else:
+        ### Downloading New Albums
+        print("\n"," ","="*30,"Artist ID/Name --- {0} / {1}".format(artistData.ID.ID, artistData.artist.name),"="*30)
+        print("   {0} / {1} / {2}  \t{3}".format(NknownCodes, NtogetCodes, Ncodes, nKnown))
+        print("   Downloading {0} files".format(len(codesToDownload)))
+
+        baseURL = self.disc.discogURL
+        for ia,(albumID,albumURL) in enumerate(codesToDownload.items()):
+            print("\t{0}/{1}  \t{2}: {3}".format(ia,len(codesToDownload),albumID,albumURL))
+            savename = self.getAlbumSavename(artistID, albumID)
+            url = urllib.parse.urljoin(baseURL, quote(albumURL))
+            if knownAlbums.get(url) is True:
+                print("\t====> Already known and previously downloaded.")
+                continue
+            retval = self.downloadAlbumURLData(url, savename, artistID)
+            nDownloads += 1
+            
+            
+        if False:
+            print("Do we still call this!!!")
+            1/0
+
+            media = artistData.media.media
+            for mediaType, mediaTypeData in media.items():
+                if mediaTypes is not None:
+                    if mediaType not in mediaTypes:
+                        continue
+
+                nget = 0        
+                toGetMediaIDs = {mediaIDData.code: mediaIDData.url for mediaIDData in mediaTypeData}
+
+                toGet = {}
+                known = {}
+                print("\t","Getting {0} media IDs".format(len(toGetMediaIDs)))
+                for albumID,albumURL in toGetMediaIDs.items():
+                    savename = self.getAlbumSavename(artistID, albumID)                    
+                    if not isFile(savename):
+                        toGet[albumURL] = savename
+                    else:
+                        known[albumURL] = savename
+
+                nToGet = len(toGetMediaIDs)-len(toGet)
+                #print("\tDownloaded {0}/{1} entries of type {2}".format(nToGet, len(toGetMediaIDs), mediaType))
+                for albumURL,savename in toGet.items():
+                    if maxAlbums is not None:
+                        if len(known) >= maxAlbums:
+                            break               
                     known[albumURL] = savename
 
-            nToGet = len(toGetMediaIDs)-len(toGet)
-            #print("\tDownloaded {0}/{1} entries of type {2}".format(nToGet, len(toGetMediaIDs), mediaType))
-            for albumURL,savename in toGet.items():
-                if maxAlbums is not None:
-                    if len(known) >= maxAlbums:
-                        break               
-                known[albumURL] = savename
+                    baseURL = self.disc.discogURL
+                    url = urllib.parse.urljoin(baseURL, quote(albumURL))
+                    if knownAlbums.get(url) is True:
+                        print("\t  Already known and previously downloaded.")
+                        continue
+                    retval = self.downloadAlbumURLData(url, savename, artistID)
+                    nDownloads += 1
 
-                baseURL = self.disc.discogURL
-                url = urllib.parse.urljoin(baseURL, quote(albumURL))
-                if knownAlbums.get(url) is True:
-                    print("\t  Already known and previously downloaded.")
-                    continue
-                retval = self.downloadAlbumURLData(url, savename, artistID)
-                nDownloads += 1
-
-                if retval is False:
-                    knownAlbums[url] = True
-                    if len(knownAlbums) % 50 == 0:
-                        print("!"*100)
-                        print("Saving {0} known albums...".format(len(knownAlbums)))
-                        print("!"*100)
-                        self.disc.saveDiagnosticAlbumIDs(knownAlbums)
-                        sleep(2)
+                    if retval is False:
+                        knownAlbums[url] = True
+                        if len(knownAlbums) % 50 == 0:
+                            print("!"*100)
+                            print("Saving {0} known albums...".format(len(knownAlbums)))
+                            print("!"*100)
+                            self.disc.saveDiagnosticAlbumIDs(knownAlbums)
+                            sleep(2)
 
 
 
@@ -194,6 +251,10 @@ class albums():
             print("Saving {0} known albums...".format(len(knownAlbums)))
             print("!"*100)
             self.disc.saveDiagnosticAlbumIDs(knownAlbums)
+            
+            from random import random
+            if random() > 0.9:
+                saveFile(ifile="backup.p", idata=knownAlbums, debug=True)                
         return nDownloads
         
         
@@ -221,7 +282,13 @@ class albums():
         
         knownAlbums = self.disc.getDiagnosticAlbumIDs()
         
-        for artistID, artistData in dbdata.items():
+        from random import shuffle
+        artistIDs = list(dbdata.keys())
+        shuffle(artistIDs)
+        
+        for ia, artistID in enumerate(artistIDs):
+            artistData = dbdata[artistID]            
+            print("\n","="*15,"{0} and {1}  ({2}/{3})".format(artistID, artistData.artist.name,ia,len(dbdata)),"="*15)
             iArtists   += 1
             nDownloads += self.downloadAlbumFromArtistData(artistID, artistData, iArtists, mediaTypes, maxAlbums, knownAlbums, debug)
             if nDownloads % 5 == 0 and nDownloads > 0:
@@ -291,7 +358,10 @@ class albums():
     
     
     
-    def parseAlbumModValFiles(self, modVal, force=False, debug=False):
+    def parseAlbumModValFiles(self, modVal, force=False, debug=False):     
+        from os import path
+        from datetime import datetime, timedelta
+        
         start, cmt = clock("Parsing Album Files For ModVal {0}".format(modVal))
         albumInfo = album()
         
@@ -304,7 +374,9 @@ class albums():
         print("  Looking for artist albums in {0}".format(dirVal))
 
        
-        dbname = self.disc.getAlbumsDBModValFilename(modVal)
+        dbname       = self.disc.getAlbumsDBModValFilename(modVal)
+        lastModified = datetime.fromtimestamp(path.getmtime(dbname))
+        now          = datetime.now()
         if force is True:
             print("  Forcing a parse of all files.")
             dbdata = {}
@@ -319,32 +391,42 @@ class albums():
         print("  Found {0} artist directories".format(len(artistDirs)))
 
         saveIt = 0
+        nTotal = 0
+        nParse = 0
         for j,artistDir in enumerate(artistDirs):
             artistID = getDirBasics(artistDir)[-1]
             if dbdata.get(artistID) is None:
                 dbdata[artistID] = {}
 
             files = findExt(artistDir, ext='.p')
-            if j % 100 == 0 or j == len(artistDirs) - 1:
+            nTotal += len(files)
+            numRecent = [ifile for ifile in files if datetime.fromtimestamp(path.getmtime(ifile)) > lastModified]
+            numNew    = [ifile for ifile in files if (now-datetime.fromtimestamp(path.getmtime(ifile))).days < 1]            
+            files = list(set(numRecent).union(set(numNew)))
+            
+            if j == 100 or j % 500 == 0 or j == len(artistDirs) - 1:
                 print("    Found {0: <3} albums ({1: <5}) in {2}/{3}\t{4}".format(len(files), saveIt, j, len(artistDirs), artistDir))
 
-            if len(files) == 0:
+            if files == 0:
                 continue
-
+            nParse += len(files)
 
             for ifile in files:
                 if getsize(ifile) < 1000:
                     removeFile(ifile)
                     continue
-                albumID = getBaseFilename(ifile)
-                if dbdata[artistID].get(albumID) is None:
+                    
+                albumID  = getBaseFilename(ifile)
+                isKnown  = dbdata[artistID].get(albumID)
+                recent   = datetime.fromtimestamp(path.getctime(ifile))
+                if isKnown is None or recent > lastModified:                    
                     saveIt += 1
                     info   = albumInfo.getData(ifile)
                     code   = info.code.code
                     if code is None:
                         removeFile(ifile)
                         continue
-                        
+
                     if code != albumID:
                         savename = self.getAlbumSavename(artistID, code)
                         if not isFile(savename):
@@ -361,7 +443,7 @@ class albums():
                             print("Code:   {0}".format(code))
                             print("File:   {0}".format(albumID))
                             print("Artist: {0}".format(info.artist))
-                            
+
                             continue
                             #print("IDs:    {0}".format([x[0].ID for x in info.artist]))
                             1/0
@@ -371,7 +453,7 @@ class albums():
 
         if saveIt > 0:
             savename = self.disc.getAlbumsDBModValFilename(modVal)
-            print("Saving {0} new album IDs to {1}".format(saveIt, savename))
+            print("Saving {0} (new) / {1} (parsed) / {2} (total) album IDs to {3}".format(saveIt, nParse, nTotal, savename))
             saveJoblib(data=dbdata, filename=savename, compress=True)
             
             self.createAlbumModValMetadata(modVal, db=dbdata)
