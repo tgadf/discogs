@@ -163,11 +163,18 @@ class albums():
             togetCodes[k] = set(v).difference(downloadedFiles)        
         
         codesToDownload = {}
-        for mediaType in [k for k,v in knownCodes.items() if len(v) < maxAlbums]:
-            known = len(knownCodes[mediaType])
-            Nget  = max([maxAlbums-known,0])
-            codesToGet = list(togetCodes[mediaType])[:Nget]
-            codesToDownload.update({k: codeMap[k] for k in codesToGet})
+        if maxAlbums is not None:
+            for mediaType in [k for k,v in knownCodes.items() if len(v) < maxAlbums]:
+                known = len(knownCodes[mediaType])
+                Nget  = max([maxAlbums-known,0])
+                codesToGet = list(togetCodes[mediaType])[:Nget]
+                codesToDownload.update({k: codeMap[k] for k in codesToGet})
+        else:
+            for mediaType in [k for k,v in knownCodes.items()]:
+                codesToGet = list(togetCodes[mediaType])
+                codesToDownload.update({k: codeMap[k] for k in codesToGet})
+
+            
 
             
         ### Check to get
@@ -193,6 +200,18 @@ class albums():
                 print("\t====> Already known and previously downloaded.")
                 continue
             retval = self.downloadAlbumURLData(url, savename, artistID)
+            
+            if retval is False:
+                print("\t====> Adding {0} to known downloads.".format(url))
+                knownAlbums[url] = True
+                if len(knownAlbums) % 50 == 0:
+                    print("!"*100)
+                    print("Saving {0} known albums...".format(len(knownAlbums)))
+                    print("!"*100)
+                    self.disc.saveDiagnosticAlbumIDs(knownAlbums)
+                    sleep(2)
+
+            
             nDownloads += 1
             
             
@@ -243,6 +262,8 @@ class albums():
                             print("!"*100)
                             self.disc.saveDiagnosticAlbumIDs(knownAlbums)
                             sleep(2)
+                            
+                    _, _ = clock()
 
 
 
