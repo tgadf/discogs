@@ -87,6 +87,13 @@ class artists():
     ###############################################################################
     # Artist Downloads
     ###############################################################################
+    def downloadArtistFromID(self, artistID, artistRef):
+        print("Downloading Artist Data for ID [{0}] and Ref [{1}]".format(artistID, artistRef))
+        url = self.getArtistURL(artistRef)
+        savename = self.getArtistSavename(artistID)
+        self.downloadArtistURL(url, savename)
+        
+
     def downloadArtistURL(self, url, savename, parse=True, force=False, debug=False, sleeptime=2):
         if isFile(savename):
             if debug:
@@ -125,6 +132,10 @@ class artists():
                 if force is False and isFile(savename_test):
                     print("{0} exists.".format(savename_test))
                     return False
+                
+            ## Check For Additional Pages
+            newPages = self.downloadArtistExtraURL(info)
+            print("  Downloaded {0} Additional URLs".format(newPages))
 
             
         if force is False and isFile(savename):
@@ -142,6 +153,27 @@ class artists():
         else:
             return False
         
+            
+    def downloadArtistExtraURL(self, artistData, debug=False):
+        newPages = 0
+        pages = artistData.pages
+        if pages.more is True:
+            npages = pages.pages
+            artistRef = artistData.url.url
+            artistID  = artistData.ID.ID
+            print("Downloading an additional {0} URLs for ArtistID {1}".format(npages-1, artistID))
+
+            for p in range(2, npages+1):
+                url      = self.getArtistURL(artistRef, p)
+                savename = self.getArtistSavename(artistID, p)
+                if not isFile(savename):
+                    self.downloadArtistURL(url=url, savename=savename, force=True, debug=True)
+                    newPages += 1
+                    
+        return newPages
+
+
+
         
             
     ################################################################################
@@ -234,8 +266,7 @@ class artists():
         return artistData
     
     
-    def parseArtistModValExtraFiles(self, modVal, debug=False):
-        force=False
+    def parseArtistModValExtraFiles(self, modVal, debug=False, force=False):
         print("Parsing Artist Extra Files For ModVal {0}".format(modVal))
         artistInfo = artist()
 
@@ -276,6 +307,7 @@ class artists():
             info     = artistInfo.getData(ifile)
             artistID = info.ID.ID
             
+            currentMedia = sum([len(x) for x in dbdata[artistID].media.media.values()])
             #print(artistID,'\t',sum([len(x) for x in dbdata[artistID].media.media.values()]),end="\t")
 
             keys = list(set(list(info.media.media.keys()) + list(dbdata[artistID].media.media.keys())))
@@ -294,13 +326,17 @@ class artists():
                     saveIt += len(iVal)
                 dbdata[artistID].media.media[k] = list(Tretval.values())
                 
-            print(sum([len(x) for x in dbdata[artistID].media.media.values()]))
+            
+            print("File:",j," \tArtist:",artistID,'-->',currentMedia,'to',sum([len(x) for x in dbdata[artistID].media.media.values()]))
             
             
         if saveIt > 0:
             savename = setFile(artistDBDir, "{0}-DB.p".format(modVal))     
             print("Saving {0} new artist media to {1}".format(saveIt, savename))
             saveJoblib(data=dbdata, filename=savename, compress=True)
+            
+            self.createArtistModValMetadata(modVal=modVal, db=dbdata, debug=debug)
+            self.createArtistAlbumModValMetadata(modVal=modVal, db=dbdata, debug=debug)
             
         return saveIt
 
@@ -393,6 +429,7 @@ class artists():
     # Check ArtistDB Files
     ################################################################################ 
     def rmIDFromDB(self, artistID, modValue=None):
+        print("Trying to remove data from ArtistID {0}".format(artistID))
         if modValue is None:
             modValue  = self.discogsUtils.getDiscIDHashMod(discID=artistID, modval=self.disc.getMaxModVal())
         artistDBDir = self.disc.getArtistsDBDir()
@@ -415,12 +452,20 @@ class artists():
             except:
                 print("Not there...")
 
-            try:
-                savename = self.getArtistSavename(ID)
-                removeFile(savename)
-                print("Removed File {0}".format(savename))
-            except:
-                print("Not there...")
+            savename = self.getArtistSavename(ID)
+            if isFile(savename):
+                files = [savename]
+            else:
+                files = []
+            from glob import glob
+            from os.path import join
+            from fileUtils import getDirname
+            files += glob(join(getDirname(savename), "extra", "{0}-*.p".format(ID)))
+            print("Found {0} files to delete.".format(len(files)))
+            from fsUtils import removeFile
+            for ifile in files:
+                removeFile(ifile)
+                print("Removed File {0}".format(ifile))
 
         if saveVal:
             print("Saving {0}".format(dbname))
@@ -428,13 +473,13 @@ class artists():
         else:
             print("No reason to save {0}".format(dbname))
 
+            
     
     def assertDBModValExtraData(self, modVal):
         
         artistDBDir = self.disc.getArtistsDBDir()
-        dbname  = setFile(artistDBDir, "{0}-DB.p".format(modVal))     
-        dbdata  = getFile(dbname)
-        nerrs = 0
+        dbdata  = self.disc.getArtistsDBModValData(modVal)
+        nerrs   = 0
         
         for artistID,artistData in dbdata.items():
             pages = artistData.pages

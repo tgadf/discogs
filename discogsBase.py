@@ -207,6 +207,14 @@ class discogs():
             raise ValueError("{0} does not exist".format(dbfile))
         dbdata = getFile(dbfile)
         return dbdata
+    
+    def saveArtistsDBModValData(self, modVal, dbdata):
+        dbfile = self.getArtistsDBModValFilename(modVal)
+        if not isFile(dbfile):
+            raise ValueError("{0} does not exist".format(dbfile))
+        print("Saving {0} artists to {1}... ".format(len(dbdata), dbfile), end="")
+        saveFile(idata=dbdata, ifile=dbfile)
+        print("Done.")
 
 
     ###############################################################################
