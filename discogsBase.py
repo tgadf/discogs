@@ -346,6 +346,13 @@ class discogs():
         savename = self.getDBData("DB", "MasterSlimArtist", returnName=True)
         return savename
     
+    def getMasterArtistAlbumsDiscogsDB(self):
+        return self.getDBData("DB", "MasterArtistAlbums")
+    
+    def getMasterArtistAlbumsDiscogsDBFilename(self):
+        savename = self.getDBData("DB", "MasterArtistAlbums", returnName=True)
+        return savename
+    
     def getMasterArtistMetadataDiscogsDB(self):
         return self.getDBData("DB", "MasterArtistMetadata")
     

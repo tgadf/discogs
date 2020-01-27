@@ -8,8 +8,14 @@ from ioUtils import saveFile, getFile
 # Artist (Slim) DB
 #
 ########################################################################################################################
-def getSlimArtistDB(disc):
+def getSlimArtistDB(disc, force=False):
     start, cmt = clock("\n=================================== Creating Artist DB ===================================")
+    if force is False:
+        print("Using previously created Slim Artist DB")
+        discdf = disc.getMasterSlimArtistDiscogsDB()
+        elapsed(start, cmt)
+        return discdf
+    
     print("Loading ArtistID Data")
     artistIDtoName  = Series(disc.getArtistIDToNameData())
     artistIDtoRef   = Series(disc.getArtistIDToRefData())
@@ -50,8 +56,14 @@ def getSlimArtistDB(disc):
 # Artist DB
 #
 ########################################################################################################################
-def getArtistDB(disc):
+def getArtistDB(disc, force=False):
     start, cmt = clock("\n=================================== Creating Artist DB ===================================")
+    if force is False:
+        print("Using previously created Artist DB")
+        discdf = disc.getMasterArtistDiscogsDB()
+        elapsed(start, cmt)
+        return discdf
+    
     print("Loading ArtistID Data")
     artistIDtoName  = Series(disc.getArtistIDToNameData())
     artistIDtoRef   = Series(disc.getArtistIDToRefData())
@@ -100,8 +112,14 @@ def getArtistDB(disc):
 # Artist Metadata DB
 #
 ########################################################################################################################
-def getArtistMetadataDB(disc):
+def getArtistMetadataDB(disc, force=True):
     start, cmt = clock("\n=================================== Creating Artist Metadata DB ===================================")
+    if force is False:
+        print("Using previously created Artist Metadata DB")
+        discdf = disc.getMasterArtistMetadataDiscogsDB()
+        elapsed(start, cmt)
+        return discdf
+    
     print("Loading ArtistID Data")
     artistIDtoGenre          = Series(disc.getArtistIDToGenreData())
     artistIDtoStyle          = Series(disc.getArtistIDToStyleData())
@@ -142,8 +160,14 @@ def getArtistMetadataDB(disc):
 # Artist Albums DB
 #
 ########################################################################################################################
-def getArtistAlbumsDB(disc, loadRefs=False):
+def getArtistAlbumsDB(disc, loadRefs=False, force=False):
     start, cmt = clock("\n=================================== Creating Artist Albums DB ===================================")
+    if force is False:
+        print("Using previously created Artist Albums DB")
+        discdf = disc.getMasterArtistAlbumsDiscogsDB()
+        elapsed(start, cmt)
+        return discdf
+    
     print("Loading ArtistID Data")
     artistIDtoAlbumNames  = Series(disc.getArtistIDToAlbumNamesData())
     if loadRefs:
@@ -156,8 +180,13 @@ def getArtistAlbumsDB(disc, loadRefs=False):
     print("\tShape --> {0}".format(discdf.shape))
 
     print("DataFrame Shape is {0}".format(discdf.shape))
-    elapsed(start, cmt)
     
+    print("Saving Master Artist Albums DB File")
+    saveFilename = disc.getMasterArtistAlbumsDiscogsDBFilename()
+    saveFile(ifile=saveFilename, idata=discdf, debug=False)
+    
+    elapsed(start, cmt)
+        
     return discdf
 
 

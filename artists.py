@@ -428,6 +428,45 @@ class artists():
     ################################################################################
     # Check ArtistDB Files
     ################################################################################ 
+    def rmIDFiles(self, artistID):
+        print("Removing files artistID {0}".format(artistID))
+        savename = self.getArtistSavename(artistID)
+        if isFile(savename):
+            files = [savename]
+        else:
+            files = []
+        from glob import glob
+        from os.path import join
+        from fileUtils import getDirname
+        files += glob(join(getDirname(savename), "extra", "{0}-*.p".format(artistID)))
+        print("Found {0} files to delete.".format(len(files)))
+        from fsUtils import removeFile
+        for ifile in files:
+            removeFile(ifile)
+            print("Removed File {0}".format(ifile))
+
+                
+    def rmIDsFromDBs(self, artistIDs, modValue=None):
+        modvals = {}
+        for artistID in artistIDs:
+            modValue  = self.discogsUtils.getDiscIDHashMod(discID=artistID, modval=self.disc.getMaxModVal())
+            if modvals.get(modValue) is None:
+                modvals[modValue] = []
+            modvals[modValue].append(artistID)
+            
+        for modval in modvals.keys():
+            dbdata = self.disc.getArtistsDBModValData(modval)
+            for artistID in modvals[modval]:
+                try:
+                    del dbdata[artistID]
+                    print("  Removed ArtistID {0}".format(artistID))
+                except:
+                    print("  Could not remove ArtistID {0}".format(artistID))
+                    
+            self.disc.saveArtistsDBModValData(modval, dbdata)
+                
+
+
     def rmIDFromDB(self, artistID, modValue=None):
         print("Trying to remove data from ArtistID {0}".format(artistID))
         if modValue is None:
@@ -452,20 +491,7 @@ class artists():
             except:
                 print("Not there...")
 
-            savename = self.getArtistSavename(ID)
-            if isFile(savename):
-                files = [savename]
-            else:
-                files = []
-            from glob import glob
-            from os.path import join
-            from fileUtils import getDirname
-            files += glob(join(getDirname(savename), "extra", "{0}-*.p".format(ID)))
-            print("Found {0} files to delete.".format(len(files)))
-            from fsUtils import removeFile
-            for ifile in files:
-                removeFile(ifile)
-                print("Removed File {0}".format(ifile))
+            self.rmIDFiles(ID)
 
         if saveVal:
             print("Saving {0}".format(dbname))
