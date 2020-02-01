@@ -31,28 +31,28 @@ class discogs():
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))    
                 
-        self.createDirectories(debug=True)
+        self.createDirectories(debug=False)
         
         #self.unitTests()
         
     ## Improve upon this later
-    def unitTests(self):
+    def unitTests(self, debug=False):
         ### Various Tests
         dbfiles = self.getArtistsDBFiles()
         assert len(dbfiles) == self.getMaxModVal()
         print("Found {0} artist DB files and that is equal to the max mod value".format(len(dbfiles)))
 
         
-    def getModValList(self):
+    def getModValList(self, debug=False):
         return list(range(0, self.maxModVal))
         
-    def getLocalDir(self):
+    def getLocalDir(self, debug=False):
         return self.localpath
     
-    def getCodeDir(self):
+    def getCodeDir(self, debug=False):
         return self.codepath
     
-    def getSaveDir(self):
+    def getSaveDir(self, debug=False):
         return self.savepath        
         
         
@@ -77,31 +77,30 @@ class discogs():
         dbdirnames  = []
         if self.base == 'discogs':
             names = ["collections", "artists", "albums"]
-            dirnames += ["{0}".format(x) for x in names]
-            dirnames += ["{0}-db".format(x) for x in names]
-
-            names = ["artists", "albums"]
-            dirnames += ["{0}-db/metadata".format(x) for x in names]
+            dirnames += ["{0}-{1}".format(x, self.base) for x in names]
+            dirnames += ["{0}-{1}-db".format(x, self.base) for x in names]
+            dirnames += ["{0}-{1}-db/metadata".format(x, self.base) for x in names]
         elif self.base == 'allmusic':
-            names = ["artists-allmusic", "albums-allmusic"]
-            dirnames += ["{0}".format(x) for x in names]
-            dirnames += ["{0}-db".format(x) for x in names]
-            
-            names = ["artists-allmusic", "albums-allmusic"]
-            dirnames += ["{0}-db/metadata".format(x) for x in names]
+            names = ["artists", "albums"]
+            dirnames += ["{0}-{1}".format(x, self.base) for x in names]
+            dirnames += ["{0}-{1}-db".format(x, self.base) for x in names]
+            dirnames += ["{0}-{1}-db/metadata".format(x, self.base) for x in names]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
 
-        #names = ["artists-extra"]
-        #dirnames += ["{0}".format(x) for x in names]
+        if self.base == 'discogs':
+            names = ["diagnostic"]
+            dirnames += ["{0}-{1}".format(x, self.base) for x in names]  
+            dirnames += ["db-{0}".format(self.base)]
+        elif self.base == 'allmusic':   
+            names = ["diagnostic"]
+            dirnames += ["{0}-{1}".format(x, self.base) for x in names]  
+            dirnames += ["db-{0}".format(self.base)]
+        else:
+            raise ValueError("Base is illegal: {0}".format(self.base))
 
-        #names = ["search", "search-artists"]
-        #dirnames += ["{0}".format(x) for x in names]
-        
-        names = ["diagnostic"]
-        dirnames += ["{0}".format(x) for x in names]
-        
-        dirnames += ["db"]
+
+
         
         self.dirnames = dict(zip(dirnames, [setDir(self.getSaveDir(), x) for x in dirnames]))
         for name, dirname in self.dirnames.items():
@@ -130,38 +129,50 @@ class discogs():
     ###############################################################################
     # Artist ModVals
     ###############################################################################
-    def getMaxModVal(self):
+    def getMaxModVal(self, debug=False):
         return self.maxModVal
 
     
     ###############################################################################
     # Discog Directories
     ###############################################################################
-    def getDiscogDBDir(self):
-        return self.dirnames["db"]
+    def getDiscogDBDir(self, debug=False):
+        if self.base == "discogs":
+            return self.dirnames["db-discogs"]
+        elif self.base == "allmusic":
+            return self.dirnames["db-allmusic"]
+        else:
+            raise ValueError("Base is illegal: {0}".format(self.base))
 
 
     ###############################################################################
     # Discog Collection Directories
     ###############################################################################
-    def getCollectionsDir(self):
-        return self.dirnames["collections"]
-
-    def getCollectionsDBDir(self):
-        return self.dirnames["collections-db"]
+    def getCollectionsDir(self, debug=False):
+        if self.base == "discogs":
+            return self.dirnames["collections-discogs-db"]
+        elif self.base == "allmusic":
+            return self.dirnames["collections-allmusic-db"]
+        else:
+            raise ValueError("Base is illegal: {0}".format(self.base))
 
 
     ###############################################################################
     # Discog Diagnostic Directories
     ###############################################################################
-    def getDiagnosticDir(self):
-        return self.dirnames["diagnostic"]
+    def getDiagnosticDir(self, debug=False):
+        if self.base == "discogs":
+            return self.dirnames["diagnostic-discogs"]
+        elif self.base == "allmusic":
+            return self.dirnames["diagnostic-allmusic"]
+        else:
+            raise ValueError("Base is illegal: {0}".format(self.base))
 
 
     ###############################################################################
     # Discog Artist Directories
     ###############################################################################
-    def getArtistsDir(self):
+    def getArtistsDir(self, debug=False):
         if self.base == "discogs":
             return self.dirnames["artists"]
         elif self.base == "allmusic":
@@ -169,7 +180,7 @@ class discogs():
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
 
-    def getArtistsExtraDir(self):
+    def getArtistsExtraDir(self, debug=False):
         if self.base == "discogs":
             return self.dirnames["artists-extra"]
         elif self.base == "allmusic":
@@ -177,23 +188,23 @@ class discogs():
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
 
-    def getArtistsDBDir(self):
+    def getArtistsDBDir(self, debug=False):
         if self.base == "discogs":
             return self.dirnames["artists-db"]
         elif self.base == "allmusic":
-            return self.dirnames["artists-db-allmusic"]
+            return self.dirnames["artists-allmusic-db"]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
     
-    def getArtistsMetadataDBDir(self):
+    def getArtistsMetadataDBDir(self, debug=False):
         if self.base == "discogs":
             return self.dirnames["artists-db/metadata"]
         elif self.base == "allmusic":
-            return self.dirnames["artists-db-allmusic/metadata"]
+            return self.dirnames["artists-allmusic-db/metadata"]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
     
-    def getArtistsDBFiles(self):
+    def getArtistsDBFiles(self, debug=False):
         dbfiles = findExt(self.getArtistsDBDir(), "*-DB.p")
         return dbfiles
     
@@ -220,7 +231,7 @@ class discogs():
     ###############################################################################
     # Discog Albums Directories
     ###############################################################################
-    def getAlbumsDir(self):
+    def getAlbumsDir(self, debug=False):
         if self.base == "discogs":
             return self.dirnames["albums"]
         elif self.base == "allmusic":
@@ -228,35 +239,35 @@ class discogs():
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
 
-    def getAlbumsDBDir(self):
+    def getAlbumsDBDir(self, debug=False):
         if self.base == "discogs":
             return self.dirnames["albums-db"]
         elif self.base == "allmusic":
-            return self.dirnames["albums-db-allmusic"]
+            return self.dirnames["albums-allmusic-db"]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
     
-    def getAlbumsMetadataDBDir(self):
+    def getAlbumsMetadataDBDir(self, debug=False):
         if self.base == "discogs":
             return self.dirnames["albums-db/metadata"]
         elif self.base == "allmusic":
-            return self.dirnames["albums-db-allmusic/metadata"]
+            return self.dirnames["albums-allmusic-db/metadata"]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
     
-    def getAlbumsDBFiles(self):
+    def getAlbumsDBFiles(self, debug=False):
         dbfiles = findExt(self.getAlbumsDBDir(), "*-DB.p")
         return dbfiles
     
-    def getAlbumsMetadataFiles(self):
+    def getAlbumsMetadataFiles(self, debug=False):
         dbfiles = findExt(self.getAlbumsMetadataDBDir(), "*-AlbumMetadata.p")
         return dbfiles
     
-    def getAlbumsArtistMetadataFiles(self):
+    def getAlbumsArtistMetadataFiles(self, debug=False):
         dbfiles = findExt(self.getAlbumsMetadataDBDir(), "*-ArtistMetadata.p")
         return dbfiles
     
-    def getAlbumsArtistsFiles(self):
+    def getAlbumsArtistsFiles(self, debug=False):
         dbfiles = findExt(self.getAlbumsMetadataDBDir(), "*-ArtistAlbums.p")
         return dbfiles
     
@@ -275,19 +286,19 @@ class discogs():
     ###############################################################################
     # Discog Special/Search Directories
     ###############################################################################
-    def getSearchDir(self):
+    def getSearchDir(self, debug=False):
         return self.dirnames["search"]
 
-    def getSearchArtistsDir(self):
+    def getSearchArtistsDir(self, debug=False):
         return self.dirnames["search-artists"]
 
-    def getSpecialDir(self):
+    def getSpecialDir(self, debug=False):
         return self.dirnames["special"]
 
-    def getArtistsSpecialDir(self):
+    def getArtistsSpecialDir(self, debug=False):
         return self.dirnames["artist-special"]
 
-    def getMusicDir(self):
+    def getMusicDir(self, debug=False):
         return self.localpath
     
     
@@ -297,7 +308,7 @@ class discogs():
     
     
     ##################################  Diagnostic ##################################
-    def getDiagnosticAlbumIDs(self):
+    def getDiagnosticAlbumIDs(self, debug=False):
         savename = setFile(self.getDiagnosticDir(), "albumKnownIDs.p")
         if not isFile(savename):
             raise ValueError("Could not find {0}".format(savename))
@@ -312,186 +323,191 @@ class discogs():
     ###############################################################################
     # Discog DB Names
     ###############################################################################
-    def getDBData(self, dbname, prefix, returnName=False):
+    def getDBData(self, dbname, prefix, returnName=False, debug=False):
         savename = setFile(self.getDiscogDBDir(), "{0}{1}.p".format(prefix, dbname))
+        if debug is True:
+            print("Data stored in {0}".format(savename))
         if returnName is True:
             return savename
         if not isFile(savename):
             raise ValueError("Could not find {0}".format(savename))
-        data = getFile(savename, debug=True)
+           
+        if debug:
+            print("Returning data from {0}".format(savename))
+        data = getFile(savename, debug=debug)
         return data
     
     
     ###############################################################################
     # Master Discogs DB
     ###############################################################################
-    def getMasterDiscogsDB(self):
+    def getMasterDiscogsDB(self, debug=False):
         return self.getDBData("DB", "Master")
     
-    def getMasterDiscogsDBFilename(self):
+    def getMasterDiscogsDBFilename(self, debug=False):
         savename = self.getDBData("DB", "Master", returnName=True)
         return savename
     
-    def getMasterArtistDiscogsDB(self):
+    def getMasterArtistDiscogsDB(self, debug=False):
         return self.getDBData("DB", "MasterArtist")
     
-    def getMasterArtistDiscogsDBFilename(self):
+    def getMasterArtistDiscogsDBFilename(self, debug=False):
         savename = self.getDBData("DB", "MasterArtist", returnName=True)
         return savename
     
-    def getMasterSlimArtistDiscogsDB(self):
+    def getMasterSlimArtistDiscogsDB(self, debug=False):
         return self.getDBData("DB", "MasterSlimArtist")
     
-    def getMasterSlimArtistDiscogsDBFilename(self):
+    def getMasterSlimArtistDiscogsDBFilename(self, debug=False):
         savename = self.getDBData("DB", "MasterSlimArtist", returnName=True)
         return savename
     
-    def getMasterArtistAlbumsDiscogsDB(self):
+    def getMasterArtistAlbumsDiscogsDB(self, debug=False):
         return self.getDBData("DB", "MasterArtistAlbums")
     
-    def getMasterArtistAlbumsDiscogsDBFilename(self):
+    def getMasterArtistAlbumsDiscogsDBFilename(self, debug=False):
         savename = self.getDBData("DB", "MasterArtistAlbums", returnName=True)
         return savename
     
-    def getMasterArtistMetadataDiscogsDB(self):
+    def getMasterArtistMetadataDiscogsDB(self, debug=False):
         return self.getDBData("DB", "MasterArtistMetadata")
     
-    def getMasterArtistMetadataDiscogsDBFilename(self):
+    def getMasterArtistMetadataDiscogsDBFilename(self, debug=False):
         savename = self.getDBData("DB", "MasterArtistMetadata", returnName=True)
         return savename
     
-    def getMasterAlbumDiscogsDB(self):
+    def getMasterAlbumDiscogsDB(self, debug=False):
         return self.getDBData("DB", "MasterAlbum")
     
-    def getMasterAlbumDiscogsDBFilename(self):
+    def getMasterAlbumDiscogsDBFilename(self, debug=False):
         savename = self.getDBData("DB", "MasterAlbum", returnName=True)
         return savename
     
         
     ##################################  Artists ##################################
-    def getArtistIDToNameData(self):
-        return self.getDBData("IDToName", "Artist")
+    def getArtistIDToNameData(self, debug=False):
+        return self.getDBData("IDToName", "Artist", debug=debug)
     
-    def getArtistNameToIDData(self):
+    def getArtistNameToIDData(self, debug=False):        
         return self.flip(self.getArtistIDToNameData())
         
-    def getArtistIDToRefData(self):
-        return self.getDBData("IDToRef", "Artist")
+    def getArtistIDToRefData(self, debug=False):
+        return self.getDBData("IDToRef", "Artist", debug=debug)
         
-    def getArtistIDToVariationsData(self):
-        return self.getDBData("IDToVariations", "Artist")
+    def getArtistIDToVariationsData(self, debug=False):
+        return self.getDBData("IDToVariations", "Artist", debug=debug)
 
-    def getArtistIDToAlbumNamesData(self):
-        return self.getDBData("IDToAlbumNames", "Artist")
+    def getArtistIDToAlbumNamesData(self, debug=False):
+        return self.getDBData("IDToAlbumNames", "Artist", debug=debug)
 
-    def getArtistIDToAlbumRefsData(self):
-        return self.getDBData("IDToAlbumRefs", "Artist")
+    def getArtistIDToAlbumRefsData(self, debug=False):
+        return self.getDBData("IDToAlbumRefs", "Artist", debug=debug)
 
-    def getArtistIDToCoreAlbumNamesData(self):
-        return self.getDBData("IDToCoreAlbumNames", "Artist")
+    def getArtistIDToCoreAlbumNamesData(self, debug=False):
+        return self.getDBData("IDToCoreAlbumNames", "Artist", debug=debug)
 
-    def getArtistIDToCoreAlbumRefsData(self):
-        return self.getDBData("IDToCoreAlbumRefs", "Artist")
+    def getArtistIDToCoreAlbumRefsData(self, debug=False):
+        return self.getDBData("IDToCoreAlbumRefs", "Artist", debug=debug)
         
-    def getArtistIDToGenreData(self):
-        return self.getDBData("IDToGenre", "Artist")
+    def getArtistIDToGenreData(self, debug=False):
+        return self.getDBData("IDToGenre", "Artist", debug=debug)
         
-    def getArtistIDToStyleData(self):
-        return self.getDBData("IDToStyle", "Artist")
+    def getArtistIDToStyleData(self, debug=False):
+        return self.getDBData("IDToStyle", "Artist", debug=debug)
         
-    def getArtistIDToCollaborationData(self):
-        return self.getDBData("IDToCollaborations", "Artist")
+    def getArtistIDToCollaborationData(self, debug=False):
+        return self.getDBData("IDToCollaborations", "Artist", debug=debug)
     
     
     ##################################  Albums ##################################
-    def getAlbumIDToNameData(self):
+    def getAlbumIDToNameData(self, debug=False):
         return self.getDBData("IDToName", "Album")
     
-    def getAlbumIDToRefData(self):
+    def getAlbumIDToRefData(self, debug=False):
         return self.getDBData("IDToRef", "Album")
     
-    def getAlbumIDToArtistsData(self):
+    def getAlbumIDToArtistsData(self, debug=False):
         return self.getDBData("IDToArtists", "Album")
     
     
-    def getAlbumNameToIDData(self):
+    def getAlbumNameToIDData(self, debug=False):
         return self.getDBData("NameToID", "Album")
     
-    def getAlbumNameToIDsData(self):
+    def getAlbumNameToIDsData(self, debug=False):
         return self.getDBData("NameToIDs", "Album")
     
-    def getAlbumNameToRefData(self):
+    def getAlbumNameToRefData(self, debug=False):
         return self.getDBData("NameToRef", "Album")
 
-    def getAlbumRefToIDData(self):
+    def getAlbumRefToIDData(self, debug=False):
         return self.getDBData("RefToID", "Album")
     
-    def getAlbumRefToNameData(self):
+    def getAlbumRefToNameData(self, debug=False):
         return self.getDBData("RefToName", "Album")
     
-    def getAlbumIDToArtistIDData(self):
+    def getAlbumIDToArtistIDData(self, debug=False):
         return self.getDBData("IDToArtistID", "Album")
     
-    def getAlbumArtistMetaData(self):
+    def getAlbumArtistMetaData(self, debug=False):
         return self.getDBData("ArtistMetaData", "Album")
     
     
     ##################################  Collections ##################################
-    def getCollectionNameToIDData(self):
+    def getCollectionNameToIDData(self, debug=False):
         return self.getDBData("NameToID", "Collection")
         
-    def getCollectionNameToIDsData(self):
+    def getCollectionNameToIDsData(self, debug=False):
         return self.getDBData("NameToIDs", "Collection")
     
-    def getCollectionNameToRefData(self):
+    def getCollectionNameToRefData(self, debug=False):
         return self.getDBData("NameToRef", "Collection")
         
-    def getCollectionNameToRefsData(self):
+    def getCollectionNameToRefsData(self, debug=False):
         return self.getDBData("NameToRefs", "Collection")
 
-    def getCollectionRefToIDData(self):
+    def getCollectionRefToIDData(self, debug=False):
         return self.getDBData("RefToID", "Collection")
     
-    def getCollectionRefToNameData(self):
+    def getCollectionRefToNameData(self, debug=False):
         return self.getDBData("RefToName", "Collection")
 
-    def getCollectionIDToNameData(self):
+    def getCollectionIDToNameData(self, debug=False):
         return self.getDBData("IDToName", "Collection")
     
-    def getCollectionIDToRefData(self):
+    def getCollectionIDToRefData(self, debug=False):
         return self.getDBData("IDToRef", "Collection")
     
-    def getCollectionRefCountsData(self):
+    def getCollectionRefCountsData(self, debug=False):
         return self.getDBData("RefCounts", "Collection")
     
-    def getCollectionAlbumRefCountsData(self):
+    def getCollectionAlbumRefCountsData(self, debug=False):
         return Counter(self.getDBData("AlbumRefCounts", "Collection"))
     
-    def getCollectionAlbumRefArtistsData(self):
+    def getCollectionAlbumRefArtistsData(self, debug=False):
         return self.getDBData("AlbumRefArtists", "Collection")
     
     
     
     ##################################  Core Albums ##################################
-    def getArtistIDCoreAlbumNames(self):
-        return self.getDBData("IDCoreAlbumNames", "Artist")
+    def getArtistIDCoreAlbumNames(self, debug=False):
+        return self.getDBData("IDCoreAlbumNames", "Artist", debug=debug)
     
-    def getArtistIDCoreAlbumIDs(self):
-        return self.getDBData("IDCoreAlbumIDs", "Artist")
+    def getArtistIDCoreAlbumIDs(self, debug=False):
+        return self.getDBData("IDCoreAlbumIDs", "Artist", debug=debug)
     
-    def getArtistIDCoreAlbumRefs(self):
-        return self.getDBData("IDCoreAlbumRefs", "Artist")
+    def getArtistIDCoreAlbumRefs(self, debug=False):
+        return self.getDBData("IDCoreAlbumRefs", "Artist", debug=debug)
 
-    def getArtistIDAlbumIDs(self):
-        return self.getDBData("IDAlbumIDs", "Artist")
+    def getArtistIDAlbumIDs(self, debug=False):
+        return self.getDBData("IDAlbumIDs", "Artist", debug=debug)
 
-    def getArtistIDAlbumRefs(self):
-        return self.getDBData("IDAlbumRefs", "Artist")
+    def getArtistIDAlbumRefs(self, debug=False):
+        return self.getDBData("IDAlbumRefs", "Artist", debug=debug)
     
     
     ##################################  Ascii Lookup ##################################
-    def getArtistAsciiNames(self):
-        return self.getDBData("AsciiNames", "Artist")
+    def getArtistAsciiNames(self, debug=False):
+        return self.getDBData("AsciiNames", "Artist", debug=debug)
     
     
     ###############################################################################
@@ -555,7 +571,7 @@ class discogs():
             dst = join(artistsDir, str(modValue), fname)
             moveFile(src, dst)
 
-    def mergeArtistDBs(self):
+    def mergeArtistDBs(self, debug=False):
         from glob import glob
         from os.path import join
 

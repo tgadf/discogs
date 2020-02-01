@@ -1,6 +1,48 @@
 from pandas import Series, DataFrame
 from timeUtils import clock, elapsed
 from ioUtils import saveFile, getFile
+from difflib import SequenceMatcher
+    
+    
+########################################################################################################################
+#
+# Music Pandas Functions 
+#
+########################################################################################################################
+def getMusicData(discdf, key, value):
+    retval = discdf[discdf[key] == artist]
+    if retval.shape[0] > 0:
+        return retval
+    else:
+        return None
+    
+def getRowByIndex(pdf, idx):
+    return pdf.loc[idx]    
+    
+    
+    
+########################################################################################################################
+#
+# Artist Name to ID Map
+#
+########################################################################################################################
+def getArtistNameToIDMap(disc):
+    start, cmt = clock("\n=================================== Creating Artist Name To ID Map ===================================")
+    
+    try:
+        artistIDToName = disc["DiscArtist"].to_dict()
+    except:
+        raise ValueError("Could not find DiscArtist in columns {0}".format(disc.columns))
+        
+    artistNameToID = {}
+    print("Found {0} ID -> Name entries".format(len(artistIDToName)))
+    for artistID,artistName in artistIDToName.items():
+        if artistNameToID.get(artistName) is None:
+            artistNameToID[artistName] = []
+        artistNameToID[artistName].append(artistID)
+    print("Found {0} Name -> ID entries".format(len(artistNameToID)))
+    return artistNameToID
+    
     
 
 ########################################################################################################################
