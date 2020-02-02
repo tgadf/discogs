@@ -113,7 +113,7 @@ class artistsAM():
         response = urllib.request.urlopen(request)
         data = response.read() # The data u need
         
-        return data, response
+        return data, response.getcode()
     
     
     def downloadArtistFromID(self, artistID, artistRef):
@@ -136,7 +136,7 @@ class artistsAM():
         ## Download data
         data, response = self.downloadURL(url)
         if response != 200:
-            print("Error downloading {0}".format(url))
+            print("Response is {0}. Error downloading {0}".format(response, url))
             return False
 
         
