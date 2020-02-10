@@ -10,7 +10,7 @@ from difflib import SequenceMatcher
 #
 ########################################################################################################################
 def getMusicData(discdf, key, value):
-    retval = discdf[discdf[key] == artist]
+    retval = discdf[discdf[key] == value]
     if retval.shape[0] > 0:
         return retval
     else:
