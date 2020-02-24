@@ -15,7 +15,9 @@ class discogs():
     def __init__(self, base='discogs'):
         self.name       = "Discog"
         self.localpath  = setDir("/Users/tgadfort/Music", self.name, forceExist=False)
-        self.savepath   = setDir("/Volumes/Music", self.name, forceExist=False)
+        #self.savepath   = setDir("/Volumes/Music", self.name, forceExist=False)
+        self.savepath   = setDir("/Volumes/Biggy", self.name, forceExist=False)
+
         self.codepath   = getcwd()
         
         self.maxModVal  = 100
@@ -174,7 +176,7 @@ class discogs():
     ###############################################################################
     def getArtistsDir(self, debug=False):
         if self.base == "discogs":
-            return self.dirnames["artists"]
+            return self.dirnames["artists-discogs"]
         elif self.base == "allmusic":
             return self.dirnames["artists-allmusic"]
         else:
@@ -182,7 +184,7 @@ class discogs():
 
     def getArtistsExtraDir(self, debug=False):
         if self.base == "discogs":
-            return self.dirnames["artists-extra"]
+            return self.dirnames["artists-extra-discogs"]
         elif self.base == "allmusic":
             return self.dirnames["artists-extra-allmusic"]
         else:
@@ -190,7 +192,7 @@ class discogs():
 
     def getArtistsDBDir(self, debug=False):
         if self.base == "discogs":
-            return self.dirnames["artists-db"]
+            return self.dirnames["artists-discogs-db"]
         elif self.base == "allmusic":
             return self.dirnames["artists-allmusic-db"]
         else:
@@ -198,7 +200,7 @@ class discogs():
     
     def getArtistsMetadataDBDir(self, debug=False):
         if self.base == "discogs":
-            return self.dirnames["artists-db/metadata"]
+            return self.dirnames["artists-discogs-db/metadata"]
         elif self.base == "allmusic":
             return self.dirnames["artists-allmusic-db/metadata"]
         else:
@@ -233,7 +235,7 @@ class discogs():
     ###############################################################################
     def getAlbumsDir(self, debug=False):
         if self.base == "discogs":
-            return self.dirnames["albums"]
+            return self.dirnames["albums-discogs"]
         elif self.base == "allmusic":
             return self.dirnames["albums-allmusic"]
         else:
@@ -241,7 +243,7 @@ class discogs():
 
     def getAlbumsDBDir(self, debug=False):
         if self.base == "discogs":
-            return self.dirnames["albums-db"]
+            return self.dirnames["albums-discogs-db"]
         elif self.base == "allmusic":
             return self.dirnames["albums-allmusic-db"]
         else:
@@ -249,7 +251,7 @@ class discogs():
     
     def getAlbumsMetadataDBDir(self, debug=False):
         if self.base == "discogs":
-            return self.dirnames["albums-db/metadata"]
+            return self.dirnames["albums-discogs-db/metadata"]
         elif self.base == "allmusic":
             return self.dirnames["albums-allmusic-db/metadata"]
         else:

@@ -99,7 +99,7 @@ class artists():
         response = urllib.request.urlopen(request)
         data = response.read() # The data u need
         
-        return data, response
+        return data, response.getcode()
 
 
     
