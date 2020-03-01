@@ -30,6 +30,12 @@ class discogs():
         elif self.base == 'allmusic':
             self.discogURL       = "https://www.allmusic.com/"        
             self.discogSearchURL = "https://www.allmusic.com/search/"    
+        elif self.base == 'lastfm':
+            self.discogURL       = "https://www.last.fm/music/"
+            self.discogSearchURL = "https://www.last.fm/search/" #artists?q=Ariana+Grande
+        elif self.base == 'musicbrainz':
+            self.discogURL       = "https://musicbrainz.org/"
+            self.discogSearchURL = "https://musicbrainz.org/search?"
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))    
                 
@@ -82,7 +88,7 @@ class discogs():
             dirnames += ["{0}-{1}".format(x, self.base) for x in names]
             dirnames += ["{0}-{1}-db".format(x, self.base) for x in names]
             dirnames += ["{0}-{1}-db/metadata".format(x, self.base) for x in names]
-        elif self.base == 'allmusic':
+        elif self.base in ['allmusic', 'lastfm', 'musicbrainz']:
             names = ["artists", "albums"]
             dirnames += ["{0}-{1}".format(x, self.base) for x in names]
             dirnames += ["{0}-{1}-db".format(x, self.base) for x in names]
@@ -94,7 +100,7 @@ class discogs():
             names = ["diagnostic"]
             dirnames += ["{0}-{1}".format(x, self.base) for x in names]  
             dirnames += ["db-{0}".format(self.base)]
-        elif self.base == 'allmusic':   
+        elif self.base in ['allmusic', 'lastfm', 'musicbrainz']:
             names = ["diagnostic"]
             dirnames += ["{0}-{1}".format(x, self.base) for x in names]  
             dirnames += ["db-{0}".format(self.base)]
@@ -139,10 +145,9 @@ class discogs():
     # Discog Directories
     ###############################################################################
     def getDiscogDBDir(self, debug=False):
-        if self.base == "discogs":
-            return self.dirnames["db-discogs"]
-        elif self.base == "allmusic":
-            return self.dirnames["db-allmusic"]
+        key = "db-{0}".format(self.base)
+        if self.dirnames.get(key) is not None:
+            return self.dirnames[key]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
 
@@ -151,10 +156,9 @@ class discogs():
     # Discog Collection Directories
     ###############################################################################
     def getCollectionsDir(self, debug=False):
-        if self.base == "discogs":
-            return self.dirnames["collections-discogs-db"]
-        elif self.base == "allmusic":
-            return self.dirnames["collections-allmusic-db"]
+        key = "collections-{0}-db".format(self.base)
+        if self.dirnames.get(key) is not None:
+            return self.dirnames[key]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
 
@@ -163,10 +167,9 @@ class discogs():
     # Discog Diagnostic Directories
     ###############################################################################
     def getDiagnosticDir(self, debug=False):
-        if self.base == "discogs":
-            return self.dirnames["diagnostic-discogs"]
-        elif self.base == "allmusic":
-            return self.dirnames["diagnostic-allmusic"]
+        key = "diagnostic-{0}".format(self.base)
+        if self.dirnames.get(key) is not None:
+            return self.dirnames[key]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
 
@@ -175,34 +178,30 @@ class discogs():
     # Discog Artist Directories
     ###############################################################################
     def getArtistsDir(self, debug=False):
-        if self.base == "discogs":
-            return self.dirnames["artists-discogs"]
-        elif self.base == "allmusic":
-            return self.dirnames["artists-allmusic"]
+        key = "artists-{0}".format(self.base)
+        if self.dirnames.get(key) is not None:
+            return self.dirnames[key]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
 
     def getArtistsExtraDir(self, debug=False):
-        if self.base == "discogs":
-            return self.dirnames["artists-extra-discogs"]
-        elif self.base == "allmusic":
-            return self.dirnames["artists-extra-allmusic"]
+        key = "artists-extra-{0}".format(self.base)
+        if self.dirnames.get(key) is not None:
+            return self.dirnames[key]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
 
     def getArtistsDBDir(self, debug=False):
-        if self.base == "discogs":
-            return self.dirnames["artists-discogs-db"]
-        elif self.base == "allmusic":
-            return self.dirnames["artists-allmusic-db"]
+        key = "artists-{0}-db".format(self.base)
+        if self.dirnames.get(key) is not None:
+            return self.dirnames[key]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
     
     def getArtistsMetadataDBDir(self, debug=False):
-        if self.base == "discogs":
-            return self.dirnames["artists-discogs-db/metadata"]
-        elif self.base == "allmusic":
-            return self.dirnames["artists-allmusic-db/metadata"]
+        key = "artists-{0}-db/metadata".format(self.base)
+        if self.dirnames.get(key) is not None:
+            return self.dirnames[key]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
     
@@ -234,26 +233,23 @@ class discogs():
     # Discog Albums Directories
     ###############################################################################
     def getAlbumsDir(self, debug=False):
-        if self.base == "discogs":
-            return self.dirnames["albums-discogs"]
-        elif self.base == "allmusic":
-            return self.dirnames["albums-allmusic"]
+        key = "albums-{0}".format(self.base)
+        if self.dirnames.get(key) is not None:
+            return self.dirnames[key]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
 
     def getAlbumsDBDir(self, debug=False):
-        if self.base == "discogs":
-            return self.dirnames["albums-discogs-db"]
-        elif self.base == "allmusic":
-            return self.dirnames["albums-allmusic-db"]
+        key = "albums-{0}-db".format(self.base)
+        if self.dirnames.get(key) is not None:
+            return self.dirnames[key]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
     
     def getAlbumsMetadataDBDir(self, debug=False):
-        if self.base == "discogs":
-            return self.dirnames["albums-discogs-db/metadata"]
-        elif self.base == "allmusic":
-            return self.dirnames["albums-allmusic-db/metadata"]
+        key = "albums-{0}-db/metadata".format(self.base)
+        if self.dirnames.get(key) is not None:
+            return self.dirnames[key]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
     
