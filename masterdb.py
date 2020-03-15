@@ -75,12 +75,15 @@ def getSlimArtistDB(disc, force=False):
     print("  Removing None Artist")
     #discdf = discdf[~discdf["Artist"].isna()]
     print("\tShape --> {0}".format(discdf.shape))
-    
+        
     print("  Finding Disc Artist Name")
     discdf["DiscArtist"] = discdf['Artist'].apply(discConv)
     print("\tShape --> {0}".format(discdf.shape))
     
-
+    if disc.base == "musicbrainz":
+        print("  Cleaning Disc Artist Name (MusicBrainz Only)")
+        discdf["DiscArtist"] = discdf['DiscArtist'].apply(cleanMB)
+        print("\tShape --> {0}".format(discdf.shape))
     
     print("DataFrame Shape is {0}".format(discdf.shape))
     elapsed(start, cmt)
@@ -406,3 +409,10 @@ def discConv(x):
         x = x[1:]
     x = x.strip()
     return x
+
+def cleanMB(x):
+    pos = [x.rfind("(")+1, x.rfind(")")]
+    if sum([p > 0 for p in pos]) != len(pos):
+        return x
+    parval = x[pos[0]:pos[1]]
+    return x[:pos[0]-2].strip()

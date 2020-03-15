@@ -199,7 +199,7 @@ class artistsMB():
         baseURL = self.disc.discogSearchURL
         
         baseURL = "https://musicbrainz.org/"
-        extra = "search?query={0}&type=artist&limit=10&method=indexed".format(quote(artist))
+        extra = "search?query={0}&type=artist&limit=100&method=indexed".format(quote(artist))
 
         url = urllib.parse.urljoin(baseURL, extra)
                   
@@ -352,11 +352,11 @@ class artistsMB():
         artistInfo = artistMB()
 
         artistDir = self.disc.getArtistsDir()
-        print("\t==> Artist Dir:    {0}".format(artistDir))
+        #print("\t==> Artist Dir:    {0}".format(artistDir))
         maxModVal = self.disc.getMaxModVal()
                     
         artistDBDir = self.disc.getArtistsDBDir()        
-        print("\t==> Artist DB Dir: {0}".format(artistDBDir))
+        #print("\t==> Artist DB Dir: {0}".format(artistDBDir))
         
         dirVal = setDir(artistDir, str(modVal))
         files  = findExt(dirVal, ext='.p')
