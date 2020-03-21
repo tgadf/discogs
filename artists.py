@@ -103,11 +103,11 @@ class artists():
 
 
     
-    def downloadArtistFromID(self, artistID, artistRef):
+    def downloadArtistFromID(self, artistID, artistRef, force=False):
         print("Downloading Artist Data for ID [{0}] and Ref [{1}]".format(artistID, artistRef))
         url = self.getArtistURL(artistRef)
         savename = self.getArtistSavename(artistID)
-        self.downloadArtistURL(url, savename)
+        self.downloadArtistURL(url, savename, force=force)
         
 
     def downloadArtistURL(self, url, savename, parse=True, force=False, debug=False, sleeptime=2):
@@ -148,7 +148,7 @@ class artists():
                     return False
                 
             ## Check For Additional Pages
-            newPages = self.downloadArtistExtraURL(info)
+            newPages = self.downloadArtistExtraURL(info, force=force)
             print("  Downloaded {0} Additional URLs".format(newPages))
 
             
@@ -168,7 +168,7 @@ class artists():
             return False
         
             
-    def downloadArtistExtraURL(self, artistData, debug=False):
+    def downloadArtistExtraURL(self, artistData, debug=False, force=False):
         newPages = 0
         pages = artistData.pages
         if pages.more is True:
@@ -180,7 +180,7 @@ class artists():
             for p in range(2, npages+1):
                 url      = self.getArtistURL(artistRef, p)
                 savename = self.getArtistSavename(artistID, p)
-                if not isFile(savename):
+                if not isFile(savename) or force is True:
                     self.downloadArtistURL(url=url, savename=savename, force=True, debug=True)
                     newPages += 1
                     
