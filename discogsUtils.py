@@ -168,36 +168,13 @@ class lastfmUtils:
         return baseURL
     
         
-    def getArtistID(self, href, debug=False):
-        if href is None:
-            if debug:
-                print("Could not get artist disc ID from None!")
-            return None
+    def getArtistID(self, name, debug=False):
         
-        ival = "/artist"
-        pos = href.find(ival)
-        if pos == -1:
-            if debug:
-                print("Could not find discID in {0}".format(suburl))
-            return None
-
-        try:
-            data = href[pos+len(ival)+1:]
-            pos  = data.rfind("-")
-            discID = data[(pos)+3:]
-        except:
-            print("Could not extract discID from {0}".format(href))
-            return None
-        
-        try:
-            int(discID)
-        except:
-            if debug:
-                print("DiscID {0} is not an integer".format(discID))
-            return None
-
-        if debug:
-            print("Found ID {0} from {1}".format(discID, href))
+        m = md5()
+        for val in name.split(" "):
+            m.update(val.encode('utf-8'))
+        hashval = m.hexdigest()
+        discID  = str(int(hashval, 16) % int(1e11))
             
         return discID
     
@@ -213,18 +190,8 @@ class lastfmUtils:
     # Album Functions
     #
     ###############################################################################
-    def getAlbumID(self, href):
-        code = None
-        if href is not None:
-            try:
-                code = href.split('/')[-1]
-                code = str(int(code))
-            except:
-                return None
-        else:
-            return None
-        
-        return code
+    def getAlbumID(self, name):
+        return self.getArtistID(name)
     
     
     def getArtistModVal(self, artistID):

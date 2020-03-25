@@ -176,7 +176,7 @@ class artistRM(discogs):
                 url    = ref.attrs['href']
                 name   = ref.text
 
-                ID = self.getartistRMDiscID(url)
+                ID = None
                 data.append(artistRMURLInfo(name=name, url=url, ID=ID))
         return data
 

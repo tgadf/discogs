@@ -9,11 +9,12 @@ from collections import Counter
 from math import ceil
 from time import sleep
 from time import mktime, gmtime
-#from artistRM import artistRM
+from artistRM import artistRM
 from discogsUtils import rateyourmusicUtils
 import urllib
 from urllib.parse import quote
 from hashlib import md5
+import random
 
 class artistsRM():
     def __init__(self, discog, basedir=None):
@@ -175,7 +176,7 @@ class artistsRM():
         print("Saving {0} (force={1})".format(savename, force))
         saveJoblib(data=data, filename=savename, compress=True)
         print("Done. Sleeping for {0} seconds".format(sleeptime))
-        sleep(sleeptime)
+        sleep(sleeptime + random.randint(5, 10))
         
         if isFile(savename):
             return True
@@ -202,7 +203,7 @@ class artistsRM():
         extra   = "search?searchtype=a&searchterm={0}".format(quote(artist))
 
         url = urllib.parse.urljoin(baseURL, extra)
-                  
+        print("\tSearch URL: {0}".format(url))
                     
         ## Download data
         data, response = self.downloadURL(url)
@@ -225,11 +226,12 @@ class artistsRM():
                 continue
             for j,subtable in enumerate(table.findAll("table")):
                 for tr in subtable.findAll("tr"):
-                    values   = artRM.getNamesAndURLs(tr)
+                    values   = self.artist.getNamesAndURLs(tr)
                     name     = values[0].name
                     href     = values[0].url
                     ref      = tr.find("a")
-                    artistID = dutils.getArtistID(ref.attrs['title'])
+                    artistID = self.discogsUtils.getArtistID(ref.attrs['title'])
+                    print(name,'\t',href,'\t',artistID)
 
                     if artistDB.get(href) is None:
                         artistDB[href] = {"N": 0, "Name": name, "ID": artistID}
@@ -491,7 +493,7 @@ class artistsRM():
                     savename = self.getArtistSavename(artistID, p)
                     if not isFile(savename):
                         self.downloadArtistURL(url=url, savename=savename, force=True, debug=True)
-                        sleep(2)
+                        sleep(2 + random.randint(5, 10))
                         
             
     def assertDBModValData(self, modVal):

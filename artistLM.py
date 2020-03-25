@@ -3,8 +3,12 @@ from fsUtils import isFile
 from webUtils import getHTML, isBS4
 from strUtils import fixName
 from math import ceil, floor
+import json
 
 from discogsBase import discogs
+from discogsUtils import lastfmUtils
+
+
 
 class artistLMIDClass:
     def __init__(self, ID=None, err=None):
@@ -139,8 +143,12 @@ class artistLMDataClass:
 class artistLM(discogs):
     def __init__(self, debug=False):
         self.debug = debug
+        self.dutils = lastfmUtils()
         
-    def getData(self, inputdata):
+    def getData(self, inputdata, debug=False):
+        if debug:
+            print(inputdata)
+            
         if isinstance(inputdata, str):
             if isFile(inputdata):
                 try:
@@ -175,7 +183,7 @@ class artistLM(discogs):
                 url    = ref.attrs['href']
                 name   = ref.text
 
-                ID = self.getartistLMDiscID(url)
+                ID = None
                 data.append(artistLMURLInfo(name=name, url=url, ID=ID))
         return data
 
@@ -187,29 +195,18 @@ class artistLM(discogs):
     ## Artist URL
     #######################################################################################################################################
     def getartistLMURL(self):
-        result1 = self.bsdata.find("link", {"rel": "canonical"})
-        result2 = self.bsdata.find("link", {"hreflang": "en"})
-        if result1 and not result2:
-            result = result1
-        elif result2 and not result1:
-            result = result2
-        elif result1 and result2:
-            result = result1
-        else:        
-            auc = artistLMURLClass(err=True)
+        metalink = self.bsdata.find("meta", {"property": "og:url"})
+        if metalink is None:
+            auc = artistLMURLClass(err="NoLink")
+            return auc
+        
+        try:
+            url = metalink.attrs["content"]
+        except:
+            auc = artistLMURLClass(err="NoContent")
             return auc
 
-        if result:
-            url = result.attrs["href"]
-            url = url.replace("https://www.allmusic.com", "")
-            if url.find("/artist/") == -1:
-                url = None
-                auc = artistLMURLClass(url=url, err="NoArtist")
-            else:
-                auc = artistLMURLClass(url=url)
-        else:
-            auc = artistLMURLClass(err="NoLink")
-
+        auc = artistLMURLClass(url=url)
         return auc
 
     
@@ -217,31 +214,10 @@ class artistLM(discogs):
     #######################################################################################################################################
     ## Artist ID
     #######################################################################################################################################                
-    def getartistLMDiscID(self, suburl):
-        ival = "/artist"
-        if isinstance(suburl, artistLMURLClass):
-            suburl = suburl.url
-        if not isinstance(suburl, str):
-            aic = artistLMIDClass(err="NotStr")            
-            return aic
-
-        pos = suburl.find(ival)
-        if pos == -1:
-            aic = artistLMIDClass(err="NotArtist")            
-            return aic
-
-        data = suburl[pos+len(ival)+1:]
-        pos  = data.rfind("-")
-        discIDurl = data[(pos+3):]       
-        discID = discIDurl.split("/")[0]
-        
-        try:
-            int(discID)
-        except:
-            aic = artistLMIDClass(err="NotInt")            
-            return aic
-
-        aic = artistLMIDClass(ID=discID)
+    def getartistLMDiscID(self, artist):
+        name     = artist.name
+        artistID = self.dutils.getArtistID(name)
+        aic = artistLMIDClass(ID=artistID)
         return aic
     
     
@@ -249,24 +225,22 @@ class artistLM(discogs):
     #######################################################################################################################################
     ## Artist Name
     #######################################################################################################################################
-    def getartistLMName(self):
-        artistBios = self.bsdata.findAll("div", {"class": "artist-bio-container"})
-        if len(artistBios) > 0:
-            for div in artistBios:
-                h1 = div.find("h1", {"class": "artist-name"})
-                if h1 is not None:
-                    artistName = h1.text.strip()
-                    if len(artistName) > 0:
-                        artist = fixName(artistName)
-                        anc = artistLMNameClass(name=artist, err=None)
-                    else:
-                        anc = artistLMNameClass(name=artist, err="Fix")
-                else:
-                    anc = artistLMNameClass(err="NoH1")
-        else:       
-            anc = artistLMNameClass(err=True)
+    def getartistLMName(self):        
+        try:
+            artistdiv  = self.bsdata.find("div", {"id": "tlmdata"})
+            artistdata = artistdiv.attrs['data-tealium-data']
+        except:
+            anc = artistLMNameClass(name=None, err = "NoTealiumData")
+
+        try:
+            artistvals = json.loads(artistdata)
+            artist     = artistvals["musicArtistName"]
+        except:
+            anc = artistLMNameClass(name=None, err="NoArtistName")
             return anc
-        
+
+
+        anc = artistLMNameClass(name=artist, err=None)
         return anc
     
     
@@ -297,62 +271,61 @@ class artistLM(discogs):
         return amac
     
     
-    def getartistLMMedia(self):
+    def getartistLMMedia(self, artist):
         amc  = artistLMMediaClass()
         name = "Albums"
         amc.media[name] = []
+        
+        mediaType = "Albums"
 
-        tables = self.bsdata.findAll("table")
-        for table in tables:
-            trs = table.findAll("tr")
+        albumsection = self.bsdata.find("section", {"id": "artist-albums-section"})
+        if albumsection is None:
+            amc.media[mediaType] = []
+            return amc
 
-            header  = trs[0]
-            ths     = header.findAll("th")
-            headers = [x.text.strip() for x in ths]
             
-
-            for tr in trs[1:]:
-                tds = tr.findAll("td")
+            
+            raise ValueError("Cannot find album section!")
+        ols = albumsection.findAll("ol", {"class": "buffer-standard resource-list--release-list resource-list--release-list--with-20"})
+        for ol in ols:
+            lis = ol.findAll("li", {"class": "resource-list--release-list-item-wrap"})
+            for il, li in enumerate(lis):
+                h3 = li.find("h3", {"class": "resource-list--release-list-item-name"})
+                if h3 is None:
+                    continue
+                    raise ValueError("No <h3> in artist list section ({0}/{1}): {2}".format(il,len(lis), li))
+                linkdata = self.getNamesAndURLs(h3)
+                if len(linkdata) == 0:
+                    continue
+                #print(linkdata[0].get())
                 
                 ## Name
-                key = "Name"
-                if len(headers[1]) == 0:
-                    idx = 1
-                    mediaType = tds[idx].text.strip()
-                    if len(mediaType) == 0:
-                        mediaType = name
-                else:
-                    mediaType = name
+                album = linkdata[0].name
 
+                #amdc = artistLMMediaDataClass(album=album, url=url, aclass=None, aformat=None, artist=None, code=code, year=year)
+
+                ## URL
+                url = linkdata[0].url
+                
+                ## Code
+                code = self.dutils.getArtistID(album)
+                
                 ## Year
-                key  = "Year"
-                idx  = headers.index(key)
-                year = tds[idx].text.strip()
+                year = None
+                codedatas = li.findAll("p", {"class", "resource-list--release-list-item-aux-text"})
+                if len(codedatas) == 2:
+                    codedata = codedatas[1].text
+                    vals     = [x.strip() for x in codedata.split("\n")]
+                    if len(vals) == 5:
+                        try:
+                            year = vals[2][:-2]
+                            year = year.split()[-1]
+                            year = int(year)
+                        except:
+                            year = None
+                
 
-                ## Title
-                key   = "Album"
-                idx   = headers.index(key)
-                ref   = tds[idx].findAll("a")
-                try:
-                    refdata = ref[0]
-                    url     = refdata.attrs['href']
-                    album   = refdata.text.strip()
-                    
-                    data = url.split("/")[-1]
-                    pos  = data.rfind("-")
-                    discIDurl = data[(pos+3):]       
-                    discID = discIDurl.split("/")[0]
-
-                    try:
-                        int(discID)
-                        code = discID
-                    except:
-                        code = None
-                        
-                except:
-                    print("Could not parse {0}".format(ref))
-
-                amdc = artistLMMediaDataClass(album=album, url=url, aclass=None, aformat=None, artist=None, code=code, year=year)
+                amdc = artistLMMediaDataClass(album=album, url=url, aclass=None, aformat=None, artist=[artist.name], code=code, year=year)
                 if amc.media.get(mediaType) is None:
                     amc.media[mediaType] = []
                 amc.media[mediaType].append(amdc)
@@ -414,26 +387,23 @@ class artistLM(discogs):
     ## Artist Variations
     #######################################################################################################################################
     def getartistLMProfile(self):       
-        from json import loads
-        result = self.bsdata.find("section", {"class": "basic-info"})   
-        if result is None:
-            apc = artistLMProfileClass(err="No Profile")
-            return apc
-           
-        data   = {}
+        data = {}
+        
+        artistdiv  = self.bsdata.find("div", {"id": "tlmdata"})
+        if artistdiv is not None:
+            artistdata = artistdiv.attrs['data-tealium-data']
+
+        if artistdata is not None:
+            try:
+                artistvals = json.loads(artistdata)
+                genres     = artistvals["tag"]
+            except:
+                genres     = None
+
+        if genres is not None:
+            genres = genres.split(",")
        
-        members = result.find("div", {"class": "group-members"})
-        if members is not None:
-            data["Members"] = [item.text.strip() for item in members.findAll("span")]
-        else:
-            data["Members"] = []
-       
-        genres = result.find("div", {"class": "genre"})
-        genre  = self.getNamesAndURLs(genres)
-        styles = result.find("div", {"class": "styles"})
-        style = self.getNamesAndURLs(styles)
-        #data["Profile"] = str({'genre': genre, 'style': style})
-        data["Profile"] = {'genre': genre, 'style': style}
+        data["Profile"] = {'genre': genres, 'style': None}
                
         apc = artistLMProfileClass(profile=data.get("Profile"), aliases=data.get("Aliases"),
                                  members=data.get("Members"), groups=data.get("In Groups"),
@@ -446,53 +416,30 @@ class artistLM(discogs):
     ## Artist Pages
     #######################################################################################################################################
     def getartistLMPages(self):
-        apc   = artistLMPageClass()
-        from numpy import ceil
-        bsdata = self.bsdata
-
-    
-        apc   = artistLMPageClass(ppp=1, tot=1, redo=False, more=False)
-        return apc
-            
-        pageData = bsdata.find("div", {"class": "pagination bottom"})
+        pageData = self.bsdata.find("ul", {"class": "pagination-list"})
         if pageData is None:
-            err = "pagination bottom"
+            err = "pagination-list"
             apc = artistLMPageClass(err=err)
             return apc
+        
+        lis = pageData.findAll("li", {"class": "pagination-page"})
+        ppp = 20
+
+        if len(lis) > 1:
+            lastPage = self.getNamesAndURLs(lis[-1])
+            tot = lastPage[0].name
+            try:
+                tot = int(tot)
+                apc   = artistLMPageClass(ppp=ppp, tot=tot, redo=False, more=True)
+            except:
+                tot = 1
+                apc   = artistLMPageClass(ppp=ppp, tot=tot, redo=False, more=False)
+
         else:
-            x = pageData.find("strong", {"class": "pagination_total"})
-            if x is None:
-                err = "pagination_total"
-                apc = artistLMPageClass(err=err)
-                return apc
-            else:
-                txt = x.text
-                txt = txt.strip()
-                txt = txt.replace("\n", "")
-                retval = [tmp.strip() for tmp in txt.split('of')]
-
-                try:
-                    ppp   = int(retval[0].split('–')[-1])
-                    tot   = int(retval[1].replace(",", ""))
-                except:
-                    err   = "int"
-                    apc   = artistLMPageClass(err=err)
-                    return apc
-
-                if ppp < 500:
-                    if tot < 25 or ppp == tot:
-                        apc   = artistLMPageClass(ppp=ppp, tot=tot, redo=False, more=False)
-                    else:
-                        apc   = artistLMPageClass(ppp=ppp, tot=tot, redo=True, more=False)
-                else:
-                    if tot < 500:
-                        apc   = artistLMPageClass(ppp=ppp, tot=tot, redo=False, more=False)
-                    else:
-                        apc   = artistLMPageClass(ppp=ppp, tot=tot, redo=False, more=True)
-                        
-                return apc
+            tot = 1
+        
+        return apc
             
-        return artistLMPageClass()
 
 
 
@@ -501,10 +448,10 @@ class artistLM(discogs):
         
         artist      = self.getartistLMName()
         url         = self.getartistLMURL()
-        ID          = self.getartistLMDiscID(url)
+        ID          = self.getartistLMDiscID(artist)
         pages       = self.getartistLMPages()
         profile     = self.getartistLMProfile()
-        media       = self.getartistLMMedia()
+        media       = self.getartistLMMedia(artist)
         mediaCounts = self.getartistLMMediaCounts(media)
         
         err = [artist.err, url.err, ID.err, pages.err, profile.err, mediaCounts.err, media.err]

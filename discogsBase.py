@@ -31,7 +31,7 @@ class discogs():
             self.discogURL       = "https://www.allmusic.com/"        
             self.discogSearchURL = "https://www.allmusic.com/search/"    
         elif self.base == 'lastfm':
-            self.discogURL       = "https://www.last.fm/music/"
+            self.discogURL       = "https://www.last.fm/"
             self.discogSearchURL = "https://www.last.fm/search/" #artists?q=Ariana+Grande
         elif self.base == 'musicbrainz':
             self.discogURL       = "https://musicbrainz.org/"

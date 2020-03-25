@@ -55,26 +55,28 @@ class artistsLM():
     
     ###############################################################################
     # Artist Info
-    ###############################################################################
+    ################################def oarse###############################################
     def getArtistURL(self, artistRef, page=1):
-        url = "{0}/discography/all".format(artistRef)
-        return url
-        
+        #print("getArtistURL(",artistRef,")")
         if artistRef.startswith("http"):
-            return artistRef
+            url = artistRef
         else:
             baseURL = self.disc.discogURL
-            url     = urllib.parse.urljoin(baseURL, quote(artistRef))
-            return url
-
-            
-        if artistRef.startswith("/artist/") is False:
-            print("Artist Ref needs to start with /artist/")
-            return None
+            if artistRef.startswith("/") is True:
+                #print("Join", end="\t")
+                url     = urllib.parse.urljoin(baseURL, quote(artistRef[1:]))
+                #print(url)
+            else:
+                url     = urllib.parse.urljoin(baseURL, quote(artistRef))
+            #print(url)
+                
+            if url.endswith("/") is False:
+                url     = "{0}{1}".format(url, "/+albums?order=release_date")
+            else:
+                url     = "{0}{1}".format(url, "+albums?order=release_date")
+                
+            #print(url)
         
-        baseURL = self.disc.discogURL
-        url     = urllib.parse.urljoin(baseURL, quote(artistRef))
-        url     = urllib.parse.urljoin(url, "?sort=year%2Casc&limit=500") ## Make sure we get 500 entries)
         if isinstance(page, int) and page > 1:
             pageURL = "&page={0}".format(page)
             url = "{0}{1}".format(url, pageURL)
@@ -83,9 +85,6 @@ class artistsLM():
     
     def getArtistSavename(self, discID, page=1):
         artistDir = self.disc.getArtistsDir()
-        if isinstance(discID, str):
-            if discID.startswith("M") or discID.startswith("m"):
-                discID = discID[2:]
         modValue  = self.discogsUtils.getDiscIDHashMod(discID=discID, modval=self.disc.getMaxModVal())
         if modValue is not None:
             outdir    = mkSubDir(artistDir, str(modValue))
@@ -191,10 +190,9 @@ class artistsLM():
         
         print("\n\n===================== Searching For {0} =====================".format(artist))
         baseURL = self.disc.discogSearchURL
-        
-        url = urllib.parse.urljoin(baseURL, "{0}{1}".format("artists/", quote(artist)))
-                  
+        url = urllib.parse.urljoin(baseURL, "{0}{1}".format("artists?q=", quote(artist)))
                     
+            
         ## Download data
         data, response = self.downloadURL(url)
         if response != 200:
@@ -207,25 +205,25 @@ class artistsLM():
         
         artistDB  = {}
         
-        uls = bsdata.findAll("ul", {"class": "search-results"})
+        uls = bsdata.findAll("ul", {"class": "artist-results"})
         for ul in uls:
-            lis = ul.findAll("li", {"class": "artist"})
+            lis = ul.findAll("li", {"class": "artist-result"})
             for li in lis:
-                divs = li.findAll("div", {"class": "name"})
-                for div in divs:
-                    link     = div.find("a")
-                    href     = link.attrs['href']
-                    tooltip  = link.attrs['data-tooltip']
-                    try:
-                        from json import loads
-                        tooltip = loads(tooltip)
-                        artistID = tooltip['id']
-                    except:
-                        artistID = None
-            
-                    if artistDB.get(href) is None:
-                        artistDB[href] = {"N": 0, "Name": artist}
-                    artistDB[href]["N"] += 1
+                h4 = li.find("h4")
+                if h4 is None:
+                    raise ValueError("No h4 in list")
+                ref = h4.find('a')
+                if ref is None:
+                    raise ValueError("No ref in h4")
+
+                name = ref.attrs['title']
+                url  = ref.attrs['href']
+                artistID = self.discogsUtils.getArtistID(name)
+        
+                #print(name,'\t',url,'\t',artistID)
+                if artistDB.get(url) is None:
+                    artistDB[url] = {"N": 0, "Name": name}
+                artistDB[url]["N"] += 1
         
     
         if debug:
@@ -235,7 +233,8 @@ class artistsLM():
         for href, hrefData in artistDB.items():
             iArtist += 1
         
-            discID   = self.discogsUtils.getArtistID(href)
+            name     = hrefData["Name"]
+            discID   = self.discogsUtils.getArtistID(name)
             url      = self.getArtistURL(href)
             savename = self.getArtistSavename(discID)
 
@@ -465,20 +464,22 @@ class artistsLM():
 
     
     def assertDBModValExtraData(self, modVal):
-        
+        print("assertDBModValExtraData(",modVal,")")
         artistDBDir = self.disc.getArtistsDBDir()
         dbname  = setFile(artistDBDir, "{0}-DB.p".format(modVal))     
         dbdata  = getFile(dbname)
         nerrs = 0
         
         for artistID,artistData in dbdata.items():
+            print(artistID,'\t',artistData.artist.name)
             pages = artistData.pages
             if pages.more is True:
-                npages = pages.pages
+                npages = pages.tot
                 artistRef = artistData.url.url
                 for p in range(2, npages+1):
                     url      = self.getArtistURL(artistRef, p)
                     savename = self.getArtistSavename(artistID, p)
+                    print(artistID,'\t',url,'\t',savename)
                     if not isFile(savename):
                         self.downloadArtistURL(url=url, savename=savename, force=True, debug=True)
                         sleep(2)
