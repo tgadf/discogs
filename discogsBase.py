@@ -44,6 +44,12 @@ class discogs():
             #https://ace-bootlegs.com/category/deep-purple/
             self.discogURL       = "https://rateyourmusic.com/"
             self.discogSearchURL = "https://rateyourmusic.com/search?"
+        elif self.base == 'datpiff':
+            #https://ace-bootlegs.com/category/deep-purple/
+            self.discogURL       = "https://www.datpiff.com/"
+            self.discogSearchURL = "https://www.datpiff.com/mixtapes-search?"
+
+
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))    
                 
@@ -96,7 +102,7 @@ class discogs():
             dirnames += ["{0}-{1}".format(x, self.base) for x in names]
             dirnames += ["{0}-{1}-db".format(x, self.base) for x in names]
             dirnames += ["{0}-{1}-db/metadata".format(x, self.base) for x in names]
-        elif self.base in ['allmusic', 'lastfm', 'musicbrainz', 'acebootlegs', 'rateyourmusic']:
+        elif self.base in ['allmusic', 'lastfm', 'musicbrainz', 'acebootlegs', 'rateyourmusic', 'datpiff']:
             names = ["artists", "albums"]
             dirnames += ["{0}-{1}".format(x, self.base) for x in names]
             dirnames += ["{0}-{1}-db".format(x, self.base) for x in names]
@@ -108,7 +114,7 @@ class discogs():
             names = ["diagnostic"]
             dirnames += ["{0}-{1}".format(x, self.base) for x in names]  
             dirnames += ["db-{0}".format(self.base)]
-        elif self.base in ['allmusic', 'lastfm', 'musicbrainz', 'acebootlegs', 'rateyourmusic']:
+        elif self.base in ['allmusic', 'lastfm', 'musicbrainz', 'acebootlegs', 'rateyourmusic', 'datpiff']:
             names = ["diagnostic"]
             dirnames += ["{0}-{1}".format(x, self.base) for x in names]  
             dirnames += ["db-{0}".format(self.base)]

@@ -90,9 +90,6 @@ class artistsRM():
     
     def getArtistSavename(self, discID, page=1):
         artistDir = self.disc.getArtistsDir()
-        if isinstance(discID, str):
-            if discID.startswith("M") or discID.startswith("m"):
-                discID = discID[2:]
         modValue  = self.discogsUtils.getDiscIDHashMod(discID=discID, modval=self.disc.getMaxModVal())
         if modValue is not None:
             outdir    = mkSubDir(artistDir, str(modValue))
