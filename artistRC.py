@@ -7,7 +7,7 @@ from hashlib import md5
 
 from discogsBase import discogs
 
-class artistMBIDClass:
+class artistRCIDClass:
     def __init__(self, ID=None, err=None):
         self.ID=ID
         self.err=err
@@ -16,7 +16,7 @@ class artistMBIDClass:
         return self.__dict__
     
             
-class artistMBURLClass:
+class artistRCURLClass:
     def __init__(self, url=None, err=None):
         self.url = url
         self.err = err
@@ -25,7 +25,7 @@ class artistMBURLClass:
         return self.__dict__
         
         
-class artistMBNameClass:
+class artistRCNameClass:
     def __init__(self, name=None, err=None):
         self.name = name
         self.err  = err
@@ -34,7 +34,7 @@ class artistMBNameClass:
         return self.__dict__
     
 
-class artistMBMediaClass:
+class artistRCMediaClass:
     def __init__(self, err=None):
         self.media = {}
         self.err   = err
@@ -43,7 +43,7 @@ class artistMBMediaClass:
         return self.__dict__
     
 
-class artistMBMediaDataClass:
+class artistRCMediaDataClass:
     def __init__(self, album=None, url=None, aclass=None, aformat=None, artist=None, code=None, year=None, err=None):
         self.album   = album
         self.url     = url
@@ -58,7 +58,7 @@ class artistMBMediaDataClass:
         return self.__dict__
     
 
-class artistMBMediaAlbumClass:
+class artistRCMediaAlbumClass:
     def __init__(self, url=None, album=None, aformat=None, err=None):
         self.url     = url
         self.album   = album
@@ -69,7 +69,7 @@ class artistMBMediaAlbumClass:
         return self.__dict__
 
     
-class artistMBMediaCountsClass:
+class artistRCMediaCountsClass:
     def __init__(self, err=None):
         self.counts = {}
         self.err    = err
@@ -78,7 +78,7 @@ class artistMBMediaCountsClass:
         return self.__dict__
     
 
-class artistMBPageClass:
+class artistRCPageClass:
     def __init__(self, ppp = None, tot = None, more=None, redo=None, err=None):
         self.ppp   = ppp
         self.tot   = tot
@@ -96,7 +96,7 @@ class artistMBPageClass:
         return self.__dict__
     
 
-class artistMBProfileClass:
+class artistRCProfileClass:
     def __init__(self, profile=None, aliases=None, members=None, sites=None, groups=None, variations=None, err=None):
         self.profile    = profile
         self.aliases    = aliases
@@ -110,7 +110,7 @@ class artistMBProfileClass:
         return self.__dict__
     
 
-class artistMBURLInfo:
+class artistRCURLInfo:
     def __init__(self, name=None, url=None, ID=None, err=None):
         self.name = name
         self.url  = url
@@ -121,7 +121,7 @@ class artistMBURLInfo:
         return self.__dict__
         
 
-class artistMBDataClass:
+class artistRCDataClass:
     def __init__(self, artist=None, url=None, ID=None, pages=None, profile=None, media=None, mediaCounts=None, err=None):
         self.artist      = artist
         self.url         = url
@@ -137,7 +137,7 @@ class artistMBDataClass:
 
 
         
-class artistMB(discogs):
+class artistRC(discogs):
     def __init__(self, debug=False):
         self.debug = debug
         
@@ -177,7 +177,7 @@ class artistMB(discogs):
                 name   = ref.text
 
                 ID = None
-                data.append(artistMBURLInfo(name=name, url=url, ID=ID))
+                data.append(artistRCURLInfo(name=name, url=url, ID=ID))
         return data
 
 
@@ -187,22 +187,17 @@ class artistMB(discogs):
     #######################################################################################################################################
     ## Artist URL
     #######################################################################################################################################
-    def getartistMBURL(self):
-        artistData = self.bsdata.find("div", {"class": "artistheader"})
+    def getartistRCURL(self):
+        artistData = self.bsdata.find("link", {"rel": "canonical"})
         if artistData is None:
-            auc = artistMBURLClass(err=True)
+            auc = artistRCURLClass(err=True)
             return auc
         
-        h1 = artistData.find("h1")
-        if h1 is None:
-            auc = artistMBURLClass(err="NoH1")
-            
-        ref = self.getNamesAndURLs(h1)
         try:
-            artistURL = ref[0].url
-            auc = artistMBURLClass(url=artistURL, err=None)
+            artistURL = artistData.attrs['href']
+            auc = artistRCURLClass(url=artistURL, err=None)
         except:
-            auc = artistMBURLClass(err="TxtErr")
+            auc = artistRCURLClass(err="TxtErr")
 
         return auc
 
@@ -211,35 +206,15 @@ class artistMB(discogs):
     #######################################################################################################################################
     ## Artist ID
     #######################################################################################################################################                
-    def getartistMBDiscID(self, suburl):
-        ival = "/artist"
-        if isinstance(suburl, artistMBURLClass):
-            suburl = suburl.url
-        if not isinstance(suburl, str):
-            aic = artistMBIDClass(err="NotStr")            
-            return aic
-
-        pos = suburl.find(ival)
-        if pos == -1:
-            aic = artistMBIDClass(err="NotArtist")            
-            return aic
-
-        uuid = suburl[pos+len(ival)+1:]
-
+    def getartistRCDiscID(self, artist):
+        name = artist.name
         
         m = md5()
-        for val in uuid.split("-"):
+        for val in name.split(" "):
             m.update(val.encode('utf-8'))
         hashval = m.hexdigest()
-        discID  = str(int(hashval, 16))
-        
-        try:
-            int(discID)
-        except:
-            aic = artistMBIDClass(err="NotInt")            
-            return aic
-
-        aic = artistMBIDClass(ID=discID)
+        discID  = str(int(hashval, 16) % int(1e9))
+        aic = artistRCIDClass(ID=discID)
         return aic
     
     
@@ -247,23 +222,19 @@ class artistMB(discogs):
     #######################################################################################################################################
     ## Artist Name
     #######################################################################################################################################
-    def getartistMBName(self):
-        artistData = self.bsdata.find("div", {"class": "artistheader"})
-        if artistData is None:
-            anc = artistMBNameClass(err=True)
+    def getartistRCName(self):
+        artistData = self.bsdata.find("section", {"id": "artist-info"})
+        if artistData is None:            
+            anc = artistRCNameClass(err=True)
             return anc
         
         h1 = artistData.find("h1")
         if h1 is None:
-            anc = artistMBNameClass(err="NoH1")
+            anc = artistRCNameClass(err="NoH1")
+            return anc
             
-        ref = self.getNamesAndURLs(h1)
-        try:
-            artistName = ref[0].name
-            anc = artistMBNameClass(name=artistName, err=None)
-        except:
-            anc = artistMBNameClass(err="TxtErr")
-        
+        artistName = h1.text
+        anc = artistRCNameClass(name=artistName, err=None)
         return anc
     
     
@@ -271,8 +242,8 @@ class artistMB(discogs):
     #######################################################################################################################################
     ## Artist Media
     #######################################################################################################################################
-    def getartistMBMediaAlbum(self, td):
-        amac = artistMBMediaAlbumClass()
+    def getartistRCMediaAlbum(self, td):
+        amac = artistRCMediaAlbumClass()
         for span in td.findAll("span"):
             attrs = span.attrs
             if attrs.get("class"):
@@ -294,61 +265,84 @@ class artistMB(discogs):
         return amac
     
     
-    def getartistMBMedia(self):
-        amc  = artistMBMediaClass()
+    def getartistRCMedia(self, artist):
+        amc  = artistRCMediaClass()
         
+        mediaType = "Albums"
         
-        mediaTypes = [x.text for x in self.bsdata.findAll("h3")]
-        tables     = dict(zip(mediaTypes, self.bsdata.findAll("table")))
+        artistSection = self.bsdata.find("section", {"id": "album-artist"})
+        if artistSection is None:
+            raise ValueError("Cannot find Artist Section")
 
-        for mediaType, table in tables.items():
-            headers = [x.text for x in table.findAll("th")]
-            trs = table.findAll('tr')
-            for tr in trs[1:]:
-                tds = tr.findAll("td")
+        articles = artistSection.findAll("article")
+        for ia,article in enumerate(articles):
+            ref = article.find('a')
+            if ref is None:
+                raise ValueError("No ref in article")
+            albumURL = ref.attrs['href']
 
-                ## Year
-                idx  = headers.index("Year")
-                year = tds[idx].text
+            caption = ref.find("figcaption")
+            if caption is None:
+                raise ValueError("No figcaption in article")
 
-                ## Title
-                idx    = headers.index("Title")
-                refs   = [x.attrs['href'] for x in tds[idx].findAll('a')]
-                if len(refs) == 0:
-                    raise ValueError("No link for album")
-                url    = refs[0]
-                album  = tds[idx].text
+            b = caption.find("b")
+            if b is None:
+                raise ValueError("No bold in caption")
 
-                    
-                m = md5()
-                uuid = url.split("/")[-1]
-                for val in uuid.split("-"):
-                    m.update(val.encode('utf-8'))
-                hashval = m.hexdigest()
-                code = int(hashval, 16)
+            i = caption.find("i")
+            if i is None:
+                raise ValueError("No italics in caption")
+
+            albumName = b.text
+            albumYear = i.text
+
+            
+            m = md5()
+            for val in albumURL.split("/"):
+                m.update(val.encode('utf-8'))
+            hashval = m.hexdigest()
+            code  = str(int(hashval, 16) % int(1e9))
+
+            artists = [artist.name]
+
+            amdc = artistRCMediaDataClass(album=albumName, url=albumURL, aclass=None, aformat=None, artist=artists, code=code, year=albumYear)
+            if amc.media.get(mediaType) is None:
+                amc.media[mediaType] = []
+            amc.media[mediaType].append(amdc)
+        
+   
+        mediaType = "Songs"
+        
+        singlesSection = self.bsdata.find("ol", {"id": "songs-list"})
+        if singlesSection is None:
+            raise ValueError("Cannot find Singles Section")
+        lis = singlesSection.findAll("li")
+        for li in lis:
+            ref = li.find('a')
+            if ref is None:
+                raise ValueError("No ref in article")
+            albumURL = ref.attrs['href']
+            
+            b = ref.find("b")
+            if b is None:
+                raise ValueError("No bold in ref")
                 
+            albumName = b.text
+            albumYear = None
 
-                ## Artist
-                idx     = headers.index("Artist")
-                artists = []
-                for artistVal in tds[idx].findAll('a'):
-                    url = artistVal.attrs['href']
-                    name = artistVal.text
-                    m = md5()
-                    uuid = url.split("/")[-1]
-                    for val in uuid.split("-"):
-                        m.update(val.encode('utf-8'))
-                    hashval = m.hexdigest()
-                    ID = int(hashval, 16)
-                    artists.append(artistMBURLInfo(name=name, url=url, ID=ID))
-                       
+            
+            m = md5()
+            for val in albumURL.split("/"):
+                m.update(val.encode('utf-8'))
+            hashval = m.hexdigest()
+            code  = str(int(hashval, 16) % int(1e10))
 
-                amdc = artistMBMediaDataClass(album=album, url=url, aclass=None, aformat=None, artist=artists, code=code, year=year)
-                if amc.media.get(mediaType) is None:
-                    amc.media[mediaType] = []
-                amc.media[mediaType].append(amdc)
+            artists = [artist.name]
 
-        
+            amdc = artistRCMediaDataClass(album=albumName, url=albumURL, aclass=None, aformat=None, artist=artists, code=code, year=albumYear)
+            if amc.media.get(mediaType) is None:
+                amc.media[mediaType] = []
+            amc.media[mediaType].append(amdc)
         
 
         return amc
@@ -358,9 +352,9 @@ class artistMB(discogs):
     #######################################################################################################################################
     ## Artist Media Counts
     #######################################################################################################################################        
-    def getartistMBMediaCounts(self, media):
+    def getartistRCMediaCounts(self, media):
         
-        amcc = artistMBMediaCountsClass()
+        amcc = artistRCMediaCountsClass()
         
         credittype = "Releases"
         if amcc.counts.get(credittype) == None:
@@ -407,14 +401,9 @@ class artistMB(discogs):
     #######################################################################################################################################
     ## Artist Variations
     #######################################################################################################################################
-    def getartistMBProfile(self):
-        data   = {}        
-        genres = self.bsdata.find("div", {"class": "genre-list"})
-        genre  = self.getNamesAndURLs(genres)
-        style  = []
-        data["Profile"] = {'genre': genre, 'style': style}
-               
-        apc = artistMBProfileClass(profile=data.get("Profile"), aliases=data.get("Aliases"),
+    def getartistRCProfile(self):
+        data   = {}
+        apc = artistRCProfileClass(profile=data.get("Profile"), aliases=data.get("Aliases"),
                                  members=data.get("Members"), groups=data.get("In Groups"),
                                  sites=data.get("Sites"), variations=data.get("Variations"))
         return apc
@@ -424,25 +413,25 @@ class artistMB(discogs):
     #######################################################################################################################################
     ## Artist Pages
     #######################################################################################################################################
-    def getartistMBPages(self):
-        apc   = artistMBPageClass()
+    def getartistRCPages(self):
+        apc   = artistRCPageClass()
         from numpy import ceil
         bsdata = self.bsdata
 
     
-        apc   = artistMBPageClass(ppp=1, tot=1, redo=False, more=False)
+        apc   = artistRCPageClass(ppp=1, tot=1, redo=False, more=False)
         return apc
             
         pageData = bsdata.find("div", {"class": "pagination bottom"})
         if pageData is None:
             err = "pagination bottom"
-            apc = artistMBPageClass(err=err)
+            apc = artistRCPageClass(err=err)
             return apc
         else:
             x = pageData.find("strong", {"class": "pagination_total"})
             if x is None:
                 err = "pagination_total"
-                apc = artistMBPageClass(err=err)
+                apc = artistRCPageClass(err=err)
                 return apc
             else:
                 txt = x.text
@@ -455,39 +444,39 @@ class artistMB(discogs):
                     tot   = int(retval[1].replace(",", ""))
                 except:
                     err   = "int"
-                    apc   = artistMBPageClass(err=err)
+                    apc   = artistRCPageClass(err=err)
                     return apc
 
                 if ppp < 500:
                     if tot < 25 or ppp == tot:
-                        apc   = artistMBPageClass(ppp=ppp, tot=tot, redo=False, more=False)
+                        apc   = artistRCPageClass(ppp=ppp, tot=tot, redo=False, more=False)
                     else:
-                        apc   = artistMBPageClass(ppp=ppp, tot=tot, redo=True, more=False)
+                        apc   = artistRCPageClass(ppp=ppp, tot=tot, redo=True, more=False)
                 else:
                     if tot < 500:
-                        apc   = artistMBPageClass(ppp=ppp, tot=tot, redo=False, more=False)
+                        apc   = artistRCPageClass(ppp=ppp, tot=tot, redo=False, more=False)
                     else:
-                        apc   = artistMBPageClass(ppp=ppp, tot=tot, redo=False, more=True)
+                        apc   = artistRCPageClass(ppp=ppp, tot=tot, redo=False, more=True)
                         
                 return apc
             
-        return artistMBPageClass()
+        return artistRCPageClass()
 
 
 
     def parse(self):
         bsdata = self.bsdata
         
-        artist      = self.getartistMBName()
-        url         = self.getartistMBURL()
-        ID          = self.getartistMBDiscID(url)
-        pages       = self.getartistMBPages()
-        profile     = self.getartistMBProfile()
-        media       = self.getartistMBMedia()
-        mediaCounts = self.getartistMBMediaCounts(media)
+        artist      = self.getartistRCName()
+        url         = self.getartistRCURL()
+        ID          = self.getartistRCDiscID(artist)
+        pages       = self.getartistRCPages()
+        profile     = self.getartistRCProfile()
+        media       = self.getartistRCMedia(artist)
+        mediaCounts = self.getartistRCMediaCounts(media)
         
         err = [artist.err, url.err, ID.err, pages.err, profile.err, mediaCounts.err, media.err]
         
-        adc = artistMBDataClass(artist=artist, url=url, ID=ID, pages=pages, profile=profile, mediaCounts=mediaCounts, media=media, err=err)
+        adc = artistRCDataClass(artist=artist, url=url, ID=ID, pages=pages, profile=profile, mediaCounts=mediaCounts, media=media, err=err)
         
         return adc

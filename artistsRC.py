@@ -9,25 +9,25 @@ from collections import Counter
 from math import ceil
 from time import sleep
 from time import mktime, gmtime
-from artistLM import artistLM
-from discogsUtils import lastfmUtils
+from artistRC import artistRC
+from discogsUtils import rockcornerUtils
 from multiArtist import multiartist
 import urllib
 from urllib.parse import quote
 
-class artistsLM():
+class artistsRC():
     def __init__(self, discog, basedir=None):
         self.disc = discog
-        self.name = "artists-lastfm"
+        self.name = "artists-rockcorner"
         
-        self.artist = artistLM()
+        self.artist = artistRC()
         
         ## General Imports
         self.getCodeDir          = self.disc.getCodeDir
         self.getArtistsDir       = self.disc.getArtistsDir
         self.getArtistsDBDir     = self.disc.getArtistsDBDir
         self.getDiscogDBDir      = self.disc.getDiscogDBDir
-        self.discogsUtils        = lastfmUtils()
+        self.discogsUtils        = rockcornerUtils()
         
         self.mulArts             = multiartist()
         
@@ -71,15 +71,7 @@ class artistsLM():
                 #print(url)
             else:
                 url     = urllib.parse.urljoin(baseURL, quote(artistRef))
-            #print(url)
-                
-            if url.endswith("/") is False:
-                url     = "{0}{1}".format(url, "/+albums?order=release_date")
-            else:
-                url     = "{0}{1}".format(url, "+albums?order=release_date")
-                
-            #print(url)
-        
+                        
         if isinstance(page, int) and page > 1:
             pageURL = "&page={0}".format(page)
             url = "{0}{1}".format(url, pageURL)
@@ -183,7 +175,7 @@ class artistsLM():
     ################################################################################
     # Download Search Artist (2a)
     ################################################################################
-    def searchLastFMForArtist(self, artist, debug=True, sleeptime=2):
+    def searchRockCornerForArtist(self, artist, debug=True, sleeptime=2):
         if self.prevSearches.get(artist) is not None:
             return
         if self.prevSearches.get(artist.upper()) is not None:
@@ -193,9 +185,9 @@ class artistsLM():
         
         print("\n\n===================== Searching For {0} =====================".format(artist))
         baseURL = self.disc.discogSearchURL
-        url = urllib.parse.urljoin(baseURL, "{0}{1}".format("artists?q=", quote(artist)))
+        url = urllib.parse.urljoin(baseURL, "{0}{1}".format("search?q=", quote(artist)))
                     
-            
+
         ## Download data
         data, response = self.downloadURL(url)
         if response != 200:
@@ -207,35 +199,29 @@ class artistsLM():
         bsdata = getHTML(data)
         
         artistDB  = {}
-        
-        uls = bsdata.findAll("ul", {"class": "artist-results"})
-        for ul in uls:
-            lis = ul.findAll("li", {"class": "artist-result"})
-            for li in lis:
-                h4 = li.find("h4")
-                if h4 is None:
-                    raise ValueError("No h4 in list")
-                ref = h4.find('a')
-                if ref is None:
-                    raise ValueError("No ref in h4")
 
-                name = ref.attrs['title']
-                url  = ref.attrs['href']
-                artistID = self.discogsUtils.getArtistID(name)
-        
-                #print(name,'\t',url,'\t',artistID)
-                if artistDB.get(url) is None:
-                    artistDB[url] = {"N": 0, "Name": name}
-                artistDB[url]["N"] += 1
-        
-    
+        songs = bsdata.findAll("article", {"class": "bgl0"}) + bsdata.findAll("article", {"class": "bgl1"})
+        for i,song in enumerate(songs):
+            label     = song.find("label")
+            if label is None:
+                continue
+            name      = label.text
+            ref       = song.find("a").attrs['href']
+            artistURL = "/".join(ref.split("/")[:2])
+
+            #print(name,'\t',url,'\t',artistID)
+            if artistDB.get(artistURL) is None:
+                artistDB[artistURL] = {"N": 0, "Name": name}
+            artistDB[artistURL]["N"] += 1
+
+
         if debug:
             print("Found {0} artists".format(len(artistDB)))
-                
+
         iArtist = 0
         for href, hrefData in artistDB.items():
             iArtist += 1
-        
+
             name     = hrefData["Name"]
             discID   = self.discogsUtils.getArtistID(name)
             url      = self.getArtistURL(href)
@@ -265,7 +251,7 @@ class artistsLM():
     def parseArtistModValExtraFiles(self, modVal, debug=False):
         force=False
         print("Parsing Artist Extra Files For ModVal {0}".format(modVal))
-        artistInfo = artistLM()
+        artistInfo = artistRC()
 
         artistDir = self.disc.getArtistsDir()
         maxModVal = self.disc.getMaxModVal()
@@ -339,7 +325,7 @@ class artistsLM():
         from datetime import datetime, timedelta
 
         print("Parsing Artist Files For ModVal {0}".format(modVal))
-        artistInfo = artistLM()
+        artistInfo = artistRC()
 
         artistDir = self.disc.getArtistsDir()
         maxModVal = self.disc.getMaxModVal()

@@ -78,11 +78,11 @@ def createArtistAlbumIDMap(disc):
             for mediaName,mediaData in artistData.items():
                 artistIDAlbumNames[artistID].update({mediaName: mediaData[0]})
                 artistIDAlbumRefs[artistID].update({mediaName: mediaData[1]})
-                nAllAlbums += len(artistIDAlbumNames[artistID].values())
+                nAllAlbums += len(mediaData[0])
                 if mediaName in core:
                     artistIDCoreAlbumNames[artistID].update({mediaName: mediaData[0]})
                     artistIDCoreAlbumRefs[artistID].update({mediaName: mediaData[1]})
-                    nCoreAlbums += len(artistIDCoreAlbumNames[artistID].values())
+                    nCoreAlbums += len(mediaData[0])
 
         print("{0: <10}{1: <10}{2: <10}".format(len(artistIDAlbumNames),nCoreAlbums,nAllAlbums))
     print("\n\n==============================================\n")

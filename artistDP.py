@@ -7,7 +7,7 @@ from hashlib import md5
 
 from discogsBase import discogs
 
-class artistMBIDClass:
+class artistDPIDClass:
     def __init__(self, ID=None, err=None):
         self.ID=ID
         self.err=err
@@ -16,7 +16,7 @@ class artistMBIDClass:
         return self.__dict__
     
             
-class artistMBURLClass:
+class artistDPURLClass:
     def __init__(self, url=None, err=None):
         self.url = url
         self.err = err
@@ -25,7 +25,7 @@ class artistMBURLClass:
         return self.__dict__
         
         
-class artistMBNameClass:
+class artistDPNameClass:
     def __init__(self, name=None, err=None):
         self.name = name
         self.err  = err
@@ -34,7 +34,7 @@ class artistMBNameClass:
         return self.__dict__
     
 
-class artistMBMediaClass:
+class artistDPMediaClass:
     def __init__(self, err=None):
         self.media = {}
         self.err   = err
@@ -43,7 +43,7 @@ class artistMBMediaClass:
         return self.__dict__
     
 
-class artistMBMediaDataClass:
+class artistDPMediaDataClass:
     def __init__(self, album=None, url=None, aclass=None, aformat=None, artist=None, code=None, year=None, err=None):
         self.album   = album
         self.url     = url
@@ -58,7 +58,7 @@ class artistMBMediaDataClass:
         return self.__dict__
     
 
-class artistMBMediaAlbumClass:
+class artistDPMediaAlbumClass:
     def __init__(self, url=None, album=None, aformat=None, err=None):
         self.url     = url
         self.album   = album
@@ -69,7 +69,7 @@ class artistMBMediaAlbumClass:
         return self.__dict__
 
     
-class artistMBMediaCountsClass:
+class artistDPMediaCountsClass:
     def __init__(self, err=None):
         self.counts = {}
         self.err    = err
@@ -78,7 +78,7 @@ class artistMBMediaCountsClass:
         return self.__dict__
     
 
-class artistMBPageClass:
+class artistDPPageClass:
     def __init__(self, ppp = None, tot = None, more=None, redo=None, err=None):
         self.ppp   = ppp
         self.tot   = tot
@@ -96,7 +96,7 @@ class artistMBPageClass:
         return self.__dict__
     
 
-class artistMBProfileClass:
+class artistDPProfileClass:
     def __init__(self, profile=None, aliases=None, members=None, sites=None, groups=None, variations=None, err=None):
         self.profile    = profile
         self.aliases    = aliases
@@ -110,7 +110,7 @@ class artistMBProfileClass:
         return self.__dict__
     
 
-class artistMBURLInfo:
+class artistDPURLInfo:
     def __init__(self, name=None, url=None, ID=None, err=None):
         self.name = name
         self.url  = url
@@ -121,7 +121,7 @@ class artistMBURLInfo:
         return self.__dict__
         
 
-class artistMBDataClass:
+class artistDPDataClass:
     def __init__(self, artist=None, url=None, ID=None, pages=None, profile=None, media=None, mediaCounts=None, err=None):
         self.artist      = artist
         self.url         = url
@@ -137,9 +137,10 @@ class artistMBDataClass:
 
 
         
-class artistMB(discogs):
+class artistDP(discogs):
     def __init__(self, debug=False):
         self.debug = debug
+        self.data  = None
         
     def getData(self, inputdata):
         if isinstance(inputdata, str):
@@ -177,7 +178,7 @@ class artistMB(discogs):
                 name   = ref.text
 
                 ID = None
-                data.append(artistMBURLInfo(name=name, url=url, ID=ID))
+                data.append(artistDPURLInfo(name=name, url=url, ID=ID))
         return data
 
 
@@ -187,59 +188,17 @@ class artistMB(discogs):
     #######################################################################################################################################
     ## Artist URL
     #######################################################################################################################################
-    def getartistMBURL(self):
-        artistData = self.bsdata.find("div", {"class": "artistheader"})
-        if artistData is None:
-            auc = artistMBURLClass(err=True)
-            return auc
-        
-        h1 = artistData.find("h1")
-        if h1 is None:
-            auc = artistMBURLClass(err="NoH1")
-            
-        ref = self.getNamesAndURLs(h1)
-        try:
-            artistURL = ref[0].url
-            auc = artistMBURLClass(url=artistURL, err=None)
-        except:
-            auc = artistMBURLClass(err="TxtErr")
-
+    def getartistDPURL(self):
+        auc = artistDPURLClass(url=None, err=None)
         return auc
 
     
 
     #######################################################################################################################################
     ## Artist ID
-    #######################################################################################################################################                
-    def getartistMBDiscID(self, suburl):
-        ival = "/artist"
-        if isinstance(suburl, artistMBURLClass):
-            suburl = suburl.url
-        if not isinstance(suburl, str):
-            aic = artistMBIDClass(err="NotStr")            
-            return aic
-
-        pos = suburl.find(ival)
-        if pos == -1:
-            aic = artistMBIDClass(err="NotArtist")            
-            return aic
-
-        uuid = suburl[pos+len(ival)+1:]
-
-        
-        m = md5()
-        for val in uuid.split("-"):
-            m.update(val.encode('utf-8'))
-        hashval = m.hexdigest()
-        discID  = str(int(hashval, 16))
-        
-        try:
-            int(discID)
-        except:
-            aic = artistMBIDClass(err="NotInt")            
-            return aic
-
-        aic = artistMBIDClass(ID=discID)
+    #######################################################################################################################################
+    def getartistDPDiscID(self):
+        aic = artistDPIDClass(ID=self.data["ID"], err=None)
         return aic
     
     
@@ -247,23 +206,8 @@ class artistMB(discogs):
     #######################################################################################################################################
     ## Artist Name
     #######################################################################################################################################
-    def getartistMBName(self):
-        artistData = self.bsdata.find("div", {"class": "artistheader"})
-        if artistData is None:
-            anc = artistMBNameClass(err=True)
-            return anc
-        
-        h1 = artistData.find("h1")
-        if h1 is None:
-            anc = artistMBNameClass(err="NoH1")
-            
-        ref = self.getNamesAndURLs(h1)
-        try:
-            artistName = ref[0].name
-            anc = artistMBNameClass(name=artistName, err=None)
-        except:
-            anc = artistMBNameClass(err="TxtErr")
-        
+    def getartistDPName(self):
+        anc = artistDPNameClass(name=self.data["Name"], err=None)
         return anc
     
     
@@ -271,8 +215,8 @@ class artistMB(discogs):
     #######################################################################################################################################
     ## Artist Media
     #######################################################################################################################################
-    def getartistMBMediaAlbum(self, td):
-        amac = artistMBMediaAlbumClass()
+    def getartistDPMediaAlbum(self, td):
+        amac = artistDPMediaAlbumClass()
         for span in td.findAll("span"):
             attrs = span.attrs
             if attrs.get("class"):
@@ -294,63 +238,15 @@ class artistMB(discogs):
         return amac
     
     
-    def getartistMBMedia(self):
-        amc  = artistMBMediaClass()
-        
-        
-        mediaTypes = [x.text for x in self.bsdata.findAll("h3")]
-        tables     = dict(zip(mediaTypes, self.bsdata.findAll("table")))
-
-        for mediaType, table in tables.items():
-            headers = [x.text for x in table.findAll("th")]
-            trs = table.findAll('tr')
-            for tr in trs[1:]:
-                tds = tr.findAll("td")
-
-                ## Year
-                idx  = headers.index("Year")
-                year = tds[idx].text
-
-                ## Title
-                idx    = headers.index("Title")
-                refs   = [x.attrs['href'] for x in tds[idx].findAll('a')]
-                if len(refs) == 0:
-                    raise ValueError("No link for album")
-                url    = refs[0]
-                album  = tds[idx].text
-
-                    
-                m = md5()
-                uuid = url.split("/")[-1]
-                for val in uuid.split("-"):
-                    m.update(val.encode('utf-8'))
-                hashval = m.hexdigest()
-                code = int(hashval, 16)
-                
-
-                ## Artist
-                idx     = headers.index("Artist")
-                artists = []
-                for artistVal in tds[idx].findAll('a'):
-                    url = artistVal.attrs['href']
-                    name = artistVal.text
-                    m = md5()
-                    uuid = url.split("/")[-1]
-                    for val in uuid.split("-"):
-                        m.update(val.encode('utf-8'))
-                    hashval = m.hexdigest()
-                    ID = int(hashval, 16)
-                    artists.append(artistMBURLInfo(name=name, url=url, ID=ID))
-                       
-
-                amdc = artistMBMediaDataClass(album=album, url=url, aclass=None, aformat=None, artist=artists, code=code, year=year)
-                if amc.media.get(mediaType) is None:
-                    amc.media[mediaType] = []
-                amc.media[mediaType].append(amdc)
-
-        
-        
-
+    def getartistDPMedia(self):
+        amc  = artistDPMediaClass()
+        mediaType = "MixTape"
+        media = self.data["Media"]
+        for album in media:
+            amdc = artistDPMediaDataClass(album=album["Name"], url=album["URL"], aclass=None, aformat=None, artist=album["Artists"], code=album["Code"], year=None)
+            if amc.media.get(mediaType) is None:
+                amc.media[mediaType] = []
+            amc.media[mediaType].append(amdc)
         return amc
     
     
@@ -358,9 +254,9 @@ class artistMB(discogs):
     #######################################################################################################################################
     ## Artist Media Counts
     #######################################################################################################################################        
-    def getartistMBMediaCounts(self, media):
+    def getartistDPMediaCounts(self, media):
         
-        amcc = artistMBMediaCountsClass()
+        amcc = artistDPMediaCountsClass()
         
         credittype = "Releases"
         if amcc.counts.get(credittype) == None:
@@ -370,53 +266,16 @@ class artistMB(discogs):
             
         return amcc
         
-        
-        amcc.err = "No Counts"
-        return amcc
-        
-        results = self.bsdata.findAll("ul", {"class": "facets_nav"})
-        if results is None or len(results) == 0:
-            amcc.err = "No Counts"
-            return amcc
-            
-        for result in results:
-            for li in result.findAll("li"):
-                ref = li.find("a")
-                if ref:
-                    attrs = ref.attrs
-                    span = ref.find("span", {"class": "facet_count"})
-                    count = None
-                    if span:
-                        count = span.text
-                        credittype    = attrs.get("data-credit-type")
-                        creditsubtype = attrs.get("data-credit-subtype")
-                        if credittype and creditsubtype:
-                            if amcc.counts.get(credittype) == None:
-                                amcc.counts[credittype] = {}
-                            if amcc.counts[credittype].get(creditsubtype) == None:
-                                try:
-                                    amcc.counts[credittype][creditsubtype] = int(count)
-                                except:
-                                    amcc.counts[credittype][creditsubtype] = count
-                                    amcc.err = "Non Int"
-
-        return amcc
-    
     
 
     #######################################################################################################################################
     ## Artist Variations
     #######################################################################################################################################
-    def getartistMBProfile(self):
-        data   = {}        
-        genres = self.bsdata.find("div", {"class": "genre-list"})
-        genre  = self.getNamesAndURLs(genres)
-        style  = []
-        data["Profile"] = {'genre': genre, 'style': style}
-               
-        apc = artistMBProfileClass(profile=data.get("Profile"), aliases=data.get("Aliases"),
-                                 members=data.get("Members"), groups=data.get("In Groups"),
-                                 sites=data.get("Sites"), variations=data.get("Variations"))
+    def getartistDPProfile(self):
+        data = {}        
+        apc  = artistDPProfileClass(profile=data.get("Formed"), aliases=data.get("Aliases"),
+                                    members=data.get("Members"), groups=data.get("In Groups"),
+                                    sites=data.get("Sites"), variations=data.get("Variations"))
         return apc
 
 
@@ -424,25 +283,20 @@ class artistMB(discogs):
     #######################################################################################################################################
     ## Artist Pages
     #######################################################################################################################################
-    def getartistMBPages(self):
-        apc   = artistMBPageClass()
-        from numpy import ceil
-        bsdata = self.bsdata
-
-    
-        apc   = artistMBPageClass(ppp=1, tot=1, redo=False, more=False)
+    def getartistDPPages(self):
+        apc   = artistDPPageClass(ppp=1, tot=1, redo=False, more=False)
         return apc
             
         pageData = bsdata.find("div", {"class": "pagination bottom"})
         if pageData is None:
             err = "pagination bottom"
-            apc = artistMBPageClass(err=err)
+            apc = artistDPPageClass(err=err)
             return apc
         else:
             x = pageData.find("strong", {"class": "pagination_total"})
             if x is None:
                 err = "pagination_total"
-                apc = artistMBPageClass(err=err)
+                apc = artistDPPageClass(err=err)
                 return apc
             else:
                 txt = x.text
@@ -455,39 +309,44 @@ class artistMB(discogs):
                     tot   = int(retval[1].replace(",", ""))
                 except:
                     err   = "int"
-                    apc   = artistMBPageClass(err=err)
+                    apc   = artistDPPageClass(err=err)
                     return apc
 
                 if ppp < 500:
                     if tot < 25 or ppp == tot:
-                        apc   = artistMBPageClass(ppp=ppp, tot=tot, redo=False, more=False)
+                        apc   = artistDPPageClass(ppp=ppp, tot=tot, redo=False, more=False)
                     else:
-                        apc   = artistMBPageClass(ppp=ppp, tot=tot, redo=True, more=False)
+                        apc   = artistDPPageClass(ppp=ppp, tot=tot, redo=True, more=False)
                 else:
                     if tot < 500:
-                        apc   = artistMBPageClass(ppp=ppp, tot=tot, redo=False, more=False)
+                        apc   = artistDPPageClass(ppp=ppp, tot=tot, redo=False, more=False)
                     else:
-                        apc   = artistMBPageClass(ppp=ppp, tot=tot, redo=False, more=True)
+                        apc   = artistDPPageClass(ppp=ppp, tot=tot, redo=False, more=True)
                         
                 return apc
             
-        return artistMBPageClass()
+        return artistDPPageClass()
 
+    
+    
+    def setData(self, data):
+        self.data = data
 
 
     def parse(self):
-        bsdata = self.bsdata
+        if self.data is None:
+            print("Must call setData(data)")
+            return
         
-        artist      = self.getartistMBName()
-        url         = self.getartistMBURL()
-        ID          = self.getartistMBDiscID(url)
-        pages       = self.getartistMBPages()
-        profile     = self.getartistMBProfile()
-        media       = self.getartistMBMedia()
-        mediaCounts = self.getartistMBMediaCounts(media)
+        artist      = self.getartistDPName()
+        url         = self.getartistDPURL()
+        ID          = self.getartistDPDiscID()
+        pages       = self.getartistDPPages()
+        profile     = self.getartistDPProfile()
+        media       = self.getartistDPMedia()
+        mediaCounts = self.getartistDPMediaCounts(media)
         
         err = [artist.err, url.err, ID.err, pages.err, profile.err, mediaCounts.err, media.err]
-        
-        adc = artistMBDataClass(artist=artist, url=url, ID=ID, pages=pages, profile=profile, mediaCounts=mediaCounts, media=media, err=err)
+        adc = artistDPDataClass(artist=artist, url=url, ID=ID, pages=pages, profile=profile, mediaCounts=mediaCounts, media=media, err=err)
         
         return adc
