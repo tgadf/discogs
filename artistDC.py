@@ -6,7 +6,7 @@ from math import ceil, floor
 
 from discogsBase import discogs
 
-class artistIDClass:
+class artistDCIDClass:
     def __init__(self, ID=None, err=None):
         self.ID=ID
         self.err=err
@@ -15,7 +15,7 @@ class artistIDClass:
         return self.__dict__
     
             
-class artistURLClass:
+class artistDCURLClass:
     def __init__(self, url=None, err=None):
         self.url = url
         self.err = err
@@ -24,7 +24,7 @@ class artistURLClass:
         return self.__dict__
         
         
-class artistNameClass:
+class artistDCNameClass:
     def __init__(self, name=None, err=None):
         self.name = name
         self.err  = err
@@ -33,7 +33,7 @@ class artistNameClass:
         return self.__dict__
     
 
-class artistMediaClass:
+class artistDCMediaClass:
     def __init__(self, err=None):
         self.media = {}
         self.err   = err
@@ -42,7 +42,7 @@ class artistMediaClass:
         return self.__dict__
     
 
-class artistMediaDataClass:
+class artistDCMediaDataClass:
     def __init__(self, album=None, url=None, aclass=None, aformat=None, artist=None, code=None, year=None, err=None):
         self.album   = album
         self.url     = url
@@ -57,7 +57,7 @@ class artistMediaDataClass:
         return self.__dict__
     
 
-class artistMediaAlbumClass:
+class artistDCMediaAlbumClass:
     def __init__(self, url=None, album=None, aformat=None, err=None):
         self.url     = url
         self.album   = album
@@ -68,7 +68,7 @@ class artistMediaAlbumClass:
         return self.__dict__
 
     
-class artistMediaCountsClass:
+class artistDCMediaCountsClass:
     def __init__(self, err=None):
         self.counts = {}
         self.err    = err
@@ -77,7 +77,7 @@ class artistMediaCountsClass:
         return self.__dict__
     
 
-class artistPageClass:
+class artistDCPageClass:
     def __init__(self, ppp = None, tot = None, more=None, redo=None, err=None):
         self.ppp   = ppp
         self.tot   = tot
@@ -95,7 +95,7 @@ class artistPageClass:
         return self.__dict__
     
 
-class artistProfileClass:
+class artistDCProfileClass:
     def __init__(self, profile=None, aliases=None, members=None, sites=None, groups=None, variations=None, err=None):
         self.profile    = profile
         self.aliases    = aliases
@@ -109,7 +109,7 @@ class artistProfileClass:
         return self.__dict__
     
 
-class artistURLInfo:
+class artistDCURLInfo:
     def __init__(self, name=None, url=None, ID=None, err=None):
         self.name = name
         self.url  = url
@@ -120,7 +120,7 @@ class artistURLInfo:
         return self.__dict__
         
 
-class artistDataClass:
+class artistDCDataClass:
     def __init__(self, artist=None, url=None, ID=None, pages=None, profile=None, media=None, mediaCounts=None, err=None):
         self.artist      = artist
         self.url         = url
@@ -136,7 +136,7 @@ class artistDataClass:
 
 
         
-class artist(discogs):
+class artistDC(discogs):
     def __init__(self, debug=False):
         self.debug = debug
         
@@ -174,8 +174,8 @@ class artist(discogs):
             url    = ref.attrs['href']
             name   = ref.text
 
-            ID = self.getArtistDiscID(url)
-            data.append(artistURLInfo(name=name, url=url, ID=ID))
+            ID = self.getArtistDCDiscID(url)
+            data.append(artistDCURLInfo(name=name, url=url, ID=ID))
         return data
 
 
@@ -185,7 +185,7 @@ class artist(discogs):
     #######################################################################################################################################
     ## Artist URL
     #######################################################################################################################################
-    def getArtistURL(self):
+    def getArtistDCURL(self):
         result1 = self.bsdata.find("link", {"rel": "canonical"})
         result2 = self.bsdata.find("link", {"hreflang": "en"})
         if result1 and not result2:
@@ -195,7 +195,7 @@ class artist(discogs):
         elif result1 and result2:
             result = result1
         else:        
-            auc = artistURLClass(err=True)
+            auc = artistDCURLClass(err=True)
             return auc
 
         if result:
@@ -203,11 +203,11 @@ class artist(discogs):
             url = url.replace("https://www.discogs.com", "")
             if url.find("/artist/") == -1:
                 url = None
-                auc = artistURLClass(url=url, err="NoArtist")
+                auc = artistDCURLClass(url=url, err="NoArtist")
             else:
-                auc = artistURLClass(url=url)
+                auc = artistDCURLClass(url=url)
         else:
-            auc = artistURLClass(err="NoLink")
+            auc = artistDCURLClass(err="NoLink")
 
         return auc
 
@@ -216,17 +216,17 @@ class artist(discogs):
     #######################################################################################################################################
     ## Artist ID
     #######################################################################################################################################                
-    def getArtistDiscID(self, suburl):
+    def getArtistDCDiscID(self, suburl):
         ival = "/artist"
         if isinstance(suburl, artistURLClass):
             suburl = suburl.url
         if not isinstance(suburl, str):
-            aic = artistIDClass(err="NotStr")            
+            aic = artistDCIDClass(err="NotStr")            
             return aic
 
         pos = suburl.find(ival)
         if pos == -1:
-            aic = artistIDClass(err="NotArtist")            
+            aic = artistDCIDClass(err="NotArtist")            
             return aic
 
         data = suburl[pos+len(ival)+1:]
@@ -235,10 +235,10 @@ class artist(discogs):
         try:
             int(discID)
         except:
-            aic = artistIDClass(err="NotInt")            
+            aic = artistDCIDClass(err="NotInt")            
             return aic
 
-        aic = artistIDClass(ID=discID)
+        aic = artistDCIDClass(ID=discID)
         return aic
     
     
@@ -246,7 +246,7 @@ class artist(discogs):
     #######################################################################################################################################
     ## Artist Name
     #######################################################################################################################################
-    def getArtistName(self):
+    def getArtistDCName(self):
         result1 = self.bsdata.find("h1", {'class':'hide_desktop'})
         result2 = self.bsdata.find("h1", {'class':'hide_mobile'})
         if result1 and not result2:
@@ -256,18 +256,18 @@ class artist(discogs):
         elif result1 and result2:
             result = result1
         else:        
-            anc = artistNameClass(err=True)
+            anc = artistDCNameClass(err=True)
             return anc
 
         if result:
             artist = result.text
             if len(artist) > 0:
                 artist = fixName(artist)
-                anc = artistNameClass(name=artist, err=None)
+                anc = artistDCNameClass(name=artist, err=None)
             else:
-                anc = artistNameClass(name=artist, err="Fix")
+                anc = artistDCNameClass(name=artist, err="Fix")
         else:
-            anc = artistNameClass(err="NoH1")
+            anc = artistDCNameClass(err="NoH1")
 
         return anc
     
@@ -276,7 +276,7 @@ class artist(discogs):
     #######################################################################################################################################
     ## Artist Media
     #######################################################################################################################################
-    def getArtistMediaAlbum(self, td):
+    def getArtistDCMediaAlbum(self, td):
         amac = artistMediaAlbumClass()
         for span in td.findAll("span"):
             attrs = span.attrs
@@ -299,8 +299,8 @@ class artist(discogs):
         return amac
     
     
-    def getArtistMedia(self):
-        amc = artistMediaClass()
+    def getArtistDCMedia(self):
+        amc = artistDCMediaClass()
         
         table = self.bsdata.find("table", {"id": "artist"})
         if table == None:
@@ -322,7 +322,7 @@ class artist(discogs):
             url    = None
             albumformat = name
             if result:
-                retval      = self.getArtistMediaAlbum(result)
+                retval      = self.getArtistDCMediaAlbum(result)
                 album       = fixName(retval.album)
                 url         = retval.url
                 albumformat = retval.aformat
@@ -348,7 +348,7 @@ class artist(discogs):
             if result:
                 year = result.text
 
-            amdc = artistMediaDataClass(album=album, url=url, aclass=albumclass, aformat=albumformat, artist=artists, code=code, year=year)
+            amdc = artistDCMediaDataClass(album=album, url=url, aclass=albumclass, aformat=albumformat, artist=artists, code=code, year=year)
             amc.media[name].append(amdc)
             #if debug: print "  Found album:",album,"of type:",name
 
@@ -371,8 +371,8 @@ class artist(discogs):
     #######################################################################################################################################
     ## Artist Media Counts
     #######################################################################################################################################        
-    def getArtistMediaCounts(self):
-        amcc = artistMediaCountsClass()
+    def getArtistDCMediaCounts(self):
+        amcc = artistDCMediaCountsClass()
         
         results = self.bsdata.findAll("ul", {"class": "facets_nav"})
         if results is None or len(results) == 0:
@@ -407,7 +407,7 @@ class artist(discogs):
     #######################################################################################################################################
     ## Artist Variations
     #######################################################################################################################################
-    def getArtistProfile(self):        
+    def getArtistDCProfile(self):        
         result = self.bsdata.find("div", {"class": "profile"})
         data   = {}
         if result:
@@ -433,11 +433,11 @@ class artist(discogs):
                     content[i] = content[i].strip()
                 data[heads[i]] = content[i]
                 
-            apc = artistProfileClass(profile=data.get("Profile"), aliases=data.get("Aliases"),
+            apc = artistDCProfileClass(profile=data.get("Profile"), aliases=data.get("Aliases"),
                                      members=data.get("Members"), groups=data.get("In Groups"),
                                      sites=data.get("Sites"), variations=data.get("Variations"))
         else:
-            apc = artistProfileClass(err="No Profile")
+            apc = artistDCProfileClass(err="No Profile")
                 
         return apc
 
@@ -446,7 +446,7 @@ class artist(discogs):
     #######################################################################################################################################
     ## Artist Pages
     #######################################################################################################################################
-    def getArtistPages(self):
+    def getArtistDCPages(self):
         from numpy import ceil
         bsdata = self.bsdata
 
@@ -454,13 +454,13 @@ class artist(discogs):
         pageData = bsdata.find("div", {"class": "pagination bottom"})
         if pageData is None:
             err = "pagination bottom"
-            apc = artistPageClass(err=err)
+            apc = artistDCPageClass(err=err)
             return apc
         else:
             x = pageData.find("strong", {"class": "pagination_total"})
             if x is None:
                 err = "pagination_total"
-                apc = artistPageClass(err=err)
+                apc = artistDCPageClass(err=err)
                 return apc
             else:
                 txt = x.text
@@ -473,36 +473,36 @@ class artist(discogs):
                     tot   = int(retval[1].replace(",", ""))
                 except:
                     err   = "int"
-                    apc   = artistPageClass(err=err)
+                    apc   = artistDCPageClass(err=err)
                     return apc
 
                 if ppp < 500:
                     if tot < 25 or ppp == tot:
-                        apc   = artistPageClass(ppp=ppp, tot=tot, redo=False, more=False)
+                        apc   = artistDCPageClass(ppp=ppp, tot=tot, redo=False, more=False)
                     else:
-                        apc   = artistPageClass(ppp=ppp, tot=tot, redo=True, more=False)
+                        apc   = artistDCPageClass(ppp=ppp, tot=tot, redo=True, more=False)
                 else:
                     if tot < 500:
-                        apc   = artistPageClass(ppp=ppp, tot=tot, redo=False, more=False)
+                        apc   = artistDCPageClass(ppp=ppp, tot=tot, redo=False, more=False)
                     else:
-                        apc   = artistPageClass(ppp=ppp, tot=tot, redo=False, more=True)
+                        apc   = artistDCPageClass(ppp=ppp, tot=tot, redo=False, more=True)
                         
                 return apc
             
-        return artistPageClass()
+        return artistDCPageClass()
 
 
 
     def parse(self):
         bsdata = self.bsdata
         
-        artist      = self.getArtistName()
-        url         = self.getArtistURL()
-        ID          = self.getArtistDiscID(url)
-        pages       = self.getArtistPages()
-        profile     = self.getArtistProfile()
-        mediaCounts = self.getArtistMediaCounts()
-        media       = self.getArtistMedia()
+        artist      = self.getArtistDCName()
+        url         = self.getArtistDCURL()
+        ID          = self.getArtistDCDiscID(url)
+        pages       = self.getArtistDCPages()
+        profile     = self.getArtistDCProfile()
+        mediaCounts = self.getArtistDCMediaCounts()
+        media       = self.getArtistDCMedia()
         
         err = [artist.err, url.err, ID.err, pages.err, profile.err, mediaCounts.err, media.err]
         

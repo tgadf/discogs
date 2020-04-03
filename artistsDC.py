@@ -14,7 +14,7 @@ from discogsUtils import discogsUtils
 import urllib
 from urllib.parse import quote
 
-class artists():
+class artistsDC():
     def __init__(self, discog, basedir=None):
         self.disc = discog
         self.name = "artists"
