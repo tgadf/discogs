@@ -52,6 +52,12 @@ class discogs():
             #https://ace-bootlegs.com/category/deep-purple/
             self.discogURL       = "https://www.therockcorner.com/"
             self.discogSearchURL = "https://www.therockcorner.com/"
+        elif self.base == 'cdandlp':
+            self.discogURL       = "https://www.cdandlp.com/"
+            self.discogSearchURL = "https://www.cdandlp.com/en/search/?"
+        elif self.base == 'musicstack':
+            self.discogURL       = "https://www.musicstack.com/"
+            self.discogSearchURL = "https://www.musicstack.com/"
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))    
                 
@@ -104,7 +110,7 @@ class discogs():
             dirnames += ["{0}-{1}".format(x, self.base) for x in names]
             dirnames += ["{0}-{1}-db".format(x, self.base) for x in names]
             dirnames += ["{0}-{1}-db/metadata".format(x, self.base) for x in names]
-        elif self.base in ['allmusic', 'lastfm', 'musicbrainz', 'acebootlegs', 'rateyourmusic', 'datpiff', 'rockcorner']:
+        elif self.base in ['allmusic', 'lastfm', 'musicbrainz', 'acebootlegs', 'rateyourmusic', 'datpiff', 'rockcorner', 'cdandlp', 'musicstack']:
             names = ["artists", "albums"]
             dirnames += ["{0}-{1}".format(x, self.base) for x in names]
             dirnames += ["{0}-{1}-db".format(x, self.base) for x in names]
@@ -116,7 +122,7 @@ class discogs():
             names = ["diagnostic"]
             dirnames += ["{0}-{1}".format(x, self.base) for x in names]  
             dirnames += ["db-{0}".format(self.base)]
-        elif self.base in ['allmusic', 'lastfm', 'musicbrainz', 'acebootlegs', 'rateyourmusic', 'datpiff', 'rockcorner']:
+        elif self.base in ['allmusic', 'lastfm', 'musicbrainz', 'acebootlegs', 'rateyourmusic', 'datpiff', 'rockcorner', 'cdandlp', 'musicstack']:
             names = ["diagnostic"]
             dirnames += ["{0}-{1}".format(x, self.base) for x in names]  
             dirnames += ["db-{0}".format(self.base)]
