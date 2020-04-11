@@ -58,8 +58,12 @@ class discogs():
         elif self.base == 'musicstack':
             self.discogURL       = "https://www.musicstack.com/"
             self.discogSearchURL = "https://www.musicstack.com/"
+        elif self.base == 'metalstorm':
+            self.discogURL       = "http://www.metalstorm.net/bands/discography.php?"
+            #self.discogURL       = "https://www.metalstorm.com/"
+            self.discogSearchURL = "https://www.metalstorm.com/"
         else:
-            raise ValueError("Base is illegal: {0}".format(self.base))    
+            raise ValueError("Base is illegal: [{0}]")    
                 
         self.createDirectories(debug=False)
         
@@ -110,7 +114,7 @@ class discogs():
             dirnames += ["{0}-{1}".format(x, self.base) for x in names]
             dirnames += ["{0}-{1}-db".format(x, self.base) for x in names]
             dirnames += ["{0}-{1}-db/metadata".format(x, self.base) for x in names]
-        elif self.base in ['allmusic', 'lastfm', 'musicbrainz', 'acebootlegs', 'rateyourmusic', 'datpiff', 'rockcorner', 'cdandlp', 'musicstack']:
+        elif self.base in ['allmusic', 'lastfm', 'musicbrainz', 'acebootlegs', 'rateyourmusic', 'datpiff', 'rockcorner', 'cdandlp', 'musicstack', 'metalstorm']:
             names = ["artists", "albums"]
             dirnames += ["{0}-{1}".format(x, self.base) for x in names]
             dirnames += ["{0}-{1}-db".format(x, self.base) for x in names]
@@ -122,7 +126,7 @@ class discogs():
             names = ["diagnostic"]
             dirnames += ["{0}-{1}".format(x, self.base) for x in names]  
             dirnames += ["db-{0}".format(self.base)]
-        elif self.base in ['allmusic', 'lastfm', 'musicbrainz', 'acebootlegs', 'rateyourmusic', 'datpiff', 'rockcorner', 'cdandlp', 'musicstack']:
+        elif self.base in ['allmusic', 'lastfm', 'musicbrainz', 'acebootlegs', 'rateyourmusic', 'datpiff', 'rockcorner', 'cdandlp', 'musicstack', 'metalstorm']:
             names = ["diagnostic"]
             dirnames += ["{0}-{1}".format(x, self.base) for x in names]  
             dirnames += ["db-{0}".format(self.base)]

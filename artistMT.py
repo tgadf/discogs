@@ -6,11 +6,11 @@ from math import ceil, floor
 import json
 
 from discogsBase import discogs
-from discogsUtils import cdandlpUtils
+from discogsUtils import metalstormUtils
 
 
 
-class artistCLIDClass:
+class artistMTIDClass:
     def __init__(self, ID=None, err=None):
         self.ID=ID
         self.err=err
@@ -19,7 +19,7 @@ class artistCLIDClass:
         return self.__dict__
     
             
-class artistCLURLClass:
+class artistMTURLClass:
     def __init__(self, url=None, err=None):
         self.url = url
         self.err = err
@@ -28,7 +28,7 @@ class artistCLURLClass:
         return self.__dict__
         
         
-class artistCLNameClass:
+class artistMTNameClass:
     def __init__(self, name=None, err=None):
         self.name = name
         self.err  = err
@@ -37,7 +37,7 @@ class artistCLNameClass:
         return self.__dict__
     
 
-class artistCLMediaClass:
+class artistMTMediaClass:
     def __init__(self, err=None):
         self.media = {}
         self.err   = err
@@ -46,7 +46,7 @@ class artistCLMediaClass:
         return self.__dict__
     
 
-class artistCLMediaDataClass:
+class artistMTMediaDataClass:
     def __init__(self, album=None, url=None, aclass=None, aformat=None, artist=None, code=None, year=None, err=None):
         self.album   = album
         self.url     = url
@@ -61,7 +61,7 @@ class artistCLMediaDataClass:
         return self.__dict__
     
 
-class artistCLMediaAlbumClass:
+class artistMTMediaAlbumClass:
     def __init__(self, url=None, album=None, aformat=None, err=None):
         self.url     = url
         self.album   = album
@@ -72,7 +72,7 @@ class artistCLMediaAlbumClass:
         return self.__dict__
 
     
-class artistCLMediaCountsClass:
+class artistMTMediaCountsClass:
     def __init__(self, err=None):
         self.counts = {}
         self.err    = err
@@ -81,7 +81,7 @@ class artistCLMediaCountsClass:
         return self.__dict__
     
 
-class artistCLPageClass:
+class artistMTPageClass:
     def __init__(self, ppp = None, tot = None, more=None, redo=None, err=None):
         self.ppp   = ppp
         self.tot   = tot
@@ -99,7 +99,7 @@ class artistCLPageClass:
         return self.__dict__
     
 
-class artistCLProfileClass:
+class artistMTProfileClass:
     def __init__(self, profile=None, aliases=None, members=None, sites=None, groups=None, variations=None, err=None):
         self.profile    = profile
         self.aliases    = aliases
@@ -113,7 +113,7 @@ class artistCLProfileClass:
         return self.__dict__
     
 
-class artistCLURLInfo:
+class artistMTURLInfo:
     def __init__(self, name=None, url=None, ID=None, err=None):
         self.name = name
         self.url  = url
@@ -124,7 +124,7 @@ class artistCLURLInfo:
         return self.__dict__
         
 
-class artistCLDataClass:
+class artistMTDataClass:
     def __init__(self, artist=None, url=None, ID=None, pages=None, profile=None, media=None, mediaCounts=None, err=None):
         self.artist      = artist
         self.url         = url
@@ -140,7 +140,7 @@ class artistCLDataClass:
 
 
         
-class artistCL(discogs):
+class artistMT(discogs):
     def __init__(self, debug=False):
         self.debug = debug
         self.dutils = cdandlpUtils()
@@ -184,7 +184,7 @@ class artistCL(discogs):
                 name   = ref.text
 
                 ID = None
-                data.append(artistCLURLInfo(name=name, url=url, ID=ID))
+                data.append(artistMTURLInfo(name=name, url=url, ID=ID))
         return data
 
 
@@ -194,31 +194,30 @@ class artistCL(discogs):
     #######################################################################################################################################
     ## Artist URL
     #######################################################################################################################################
-    def getartistCLURL(self):       
-        formlinks = self.bsdata.findAll("form", {"method": "get"})
-        for formlink in formlinks:
-            attrs = formlink.attrs
-            if attrs.get('name') is not None:
-                continue
-        
-            try:
-                url = formlink.attrs["action"]
-            except:
-                auc = artistCLURLClass(err="NoContent")
-                return auc
-
-            auc = artistCLURLClass(url=url)
+    def getartistMTURL(self):       
+        metalink = self.bsdata.find("meta", {"property": "og:url"})
+        if metalink is None:
+            auc = artistMTURLClass(err="NoLink")
             return auc
+
+        try:
+            url = metalink.attrs["content"]
+        except:
+            auc = artistMTURLClass(err="NoContent")
+            return auc
+
+        auc = artistMTURLClass(url=url)
+        return auc
 
     
 
     #######################################################################################################################################
     ## Artist ID
     #######################################################################################################################################                
-    def getartistCLDiscID(self, url):
-        url = url.url
-        artistID = self.dutils.getArtistID(url)
-        aic = artistCLIDClass(ID=artistID)
+    def getartistMTDiscID(self, url):
+        codeData = url.url.split("band_id=")[1]
+        artistID = codeData.split("&")[0]
+        aic = artistMTIDClass(ID=artistID)
         return aic
     
     
@@ -226,26 +225,20 @@ class artistCL(discogs):
     #######################################################################################################################################
     ## Artist Name
     #######################################################################################################################################
-    def getartistCLName(self):        
-        artistdiv  = self.bsdata.find("div", {"class": "twelve large-20 columns"})
+    def getartistMTName(self):        
+        artistdiv  = self.bsdata.find("div", {"class": "page_title"})
         if artistdiv is None:
-            anc = artistCLNameClass(name=None, err = "No Data")
+            anc = artistMTNameClass(name=None, err = "NoData")
             return anc
 
-        h1 = artistdiv.find("h1")
-        if h1 is None:            
-            anc = artistCLNameClass(name=None, err = "No H1")
+        txt = artistdiv.text.strip()
+        if txt.endswith(" - Discography"):
+            artistName = txt[:-len(" - Discography")]
+        else:
+            anc = artistMTNameClass(name=None, err="NoSyntax")
             return anc
         
-        try:
-            artistName = h1.text
-            artistName = artistName.title()
-        except:
-            anc = artistCLNameClass(name=None, err="NoArtistName")
-            return anc
-
-
-        anc = artistCLNameClass(name=artistName, err=None)
+        anc = artistMTNameClass(name=artistName, err=None)
         return anc
     
     
@@ -253,8 +246,8 @@ class artistCL(discogs):
     #######################################################################################################################################
     ## Artist Media
     #######################################################################################################################################
-    def getartistCLMediaAlbum(self, td):
-        amac = artistCLMediaAlbumClass()
+    def getartistMTMediaAlbum(self, td):
+        amac = artistMTMediaAlbumClass()
         for span in td.findAll("span"):
             attrs = span.attrs
             if attrs.get("class"):
@@ -276,46 +269,60 @@ class artistCL(discogs):
         return amac
     
     
-    def getartistCLMedia(self, artist):
-        amc  = artistCLMediaClass()
-        name = "Albums"
-        amc.media[name] = []
-        
-        mediaType = "Albums"
+    def getartistMTMedia(self, artist):
+        amc  = artistMTMediaClass()
+        divs = self.bsdata.findAll("div", {"class": "discography-album"})
+        for div in divs:
+            divalbum = div.find("div", {"class": "album-title"})
+            if divalbum is None:
+                print("No album-title div")
+            spans = divalbum.findAll("span")
+            if len(spans) == 3:
+                titleSpan  = spans[0]
+                titleData  = self.getNamesAndURLs(titleSpan)[0]
+                albumName  = titleData.name
+                albumURL   = titleData.url
 
-        known = {}
-        divs = self.bsdata.findAll("div", {"class": "div_item_listing"})
-        for i,div in enumerate(divs):
-            descrs    = div.findAll("div", {"class": "listingDescription"})
-            if len(descrs) != 1:
-                continue
-                
-            ref = descrs[0].find('a', {"class": "listingTitle"})
-            if ref is None:
-                url = None
+                mediaTypeSpan = spans[1]
+                mediaType     = mediaTypeSpan.text
+
+                yearSpan      = spans[2]
+                year          = yearSpan.text
+            elif len(spans) == 2:
+                titleSpan  = spans[0]
+                titleData  = self.getNamesAndURLs(titleSpan)[0]
+                albumName  = titleData.name
+                albumURL   = titleData.url
+
+                mediaType  = "Album"
+
+                yearSpan   = spans[1]
+                year       = yearSpan.text
+            elif len(spans) == 1:
+                titleSpan  = spans[0]
+                titleData  = self.getNamesAndURLs(titleSpan)[0]
+                albumName  = titleData.name
+                albumURL   = titleData.url
+
+                mediaType  = "Album"
+                year       = None
             else:
-                url = ref.attrs['href']
-                
-            albumdata = list(descrs[0].strings)
-            albumdata = [x.replace("\n", "") for x in albumdata]
-            albumdata = [x.replace("\t", "") for x in albumdata]
-            albumdata = [x.replace("\r", "") for x in albumdata]
-            albumdata = [x for x in albumdata if len(x) > 0]
+                print("Could not parse line with {0} spans".format(len(spans)))
+                continue
+
+            if mediaType.startswith("["):
+                mediaType = mediaType[1:]
+            if mediaType.endswith("]"):
+                mediaType = mediaType[:-1]
+
 
             try:
-                artistName = albumdata[0].title()
-                albumName  = albumdata[1].title()
+                codeData = albumURL.split("album_id=")[1]
+                code     = codeData.split("&")[0]
             except:
-                continue
-            
-            code = self.dutils.getAlbumID(albumName)
-            if known.get(code) is None:
-                known[code] = True
-            else:
-                continue
-            year = None
+                code = self.dutils.getAlbumID(albumName)
 
-            amdc = artistCLMediaDataClass(album=albumName, url=url, aclass=None, aformat=None, artist=[artist.name], code=code, year=year)
+            amdc = artistMTMediaDataClass(album=albumName, url=albumURL, aclass=None, aformat=None, artist=[artist.name], code=code, year=year)
             if amc.media.get(mediaType) is None:
                 amc.media[mediaType] = []
             amc.media[mediaType].append(amdc)
@@ -327,9 +334,9 @@ class artistCL(discogs):
     #######################################################################################################################################
     ## Artist Media Counts
     #######################################################################################################################################        
-    def getartistCLMediaCounts(self, media):
+    def getartistMTMediaCounts(self, media):
         
-        amcc = artistCLMediaCountsClass()
+        amcc = artistMTMediaCountsClass()
         
         credittype = "Releases"
         if amcc.counts.get(credittype) == None:
@@ -344,9 +351,9 @@ class artistCL(discogs):
     #######################################################################################################################################
     ## Artist Variations
     #######################################################################################################################################
-    def getartistCLProfile(self):       
+    def getartistMTProfile(self):       
         data = {}
-        apc = artistCLProfileClass(profile=data.get("Profile"), aliases=data.get("Aliases"),
+        apc = artistMTProfileClass(profile=data.get("Profile"), aliases=data.get("Aliases"),
                                  members=data.get("Members"), groups=data.get("In Groups"),
                                  sites=data.get("Sites"), variations=data.get("Variations"))
         return apc
@@ -356,7 +363,7 @@ class artistCL(discogs):
     #######################################################################################################################################
     ## Artist Pages
     #######################################################################################################################################
-    def getartistCLPages(self):
+    def getartistMTPages(self):
         pages = {"page 1": True}
         refs  = self.bsdata.findAll("a", {"class": "pagination_new"})
         for ref in refs:
@@ -370,7 +377,7 @@ class artistCL(discogs):
             more = True
         else:
             more = False
-        apc   = artistCLPageClass(ppp=1, tot=tot, redo=False, more=more)
+        apc   = artistMTPageClass(ppp=1, tot=tot, redo=False, more=more)
         return apc
     
     
@@ -378,16 +385,16 @@ class artistCL(discogs):
     def parse(self):
         bsdata = self.bsdata
         
-        artist      = self.getartistCLName()
-        url         = self.getartistCLURL()
-        ID          = self.getartistCLDiscID(url)
-        pages       = self.getartistCLPages()
-        profile     = self.getartistCLProfile()
-        media       = self.getartistCLMedia(artist)
-        mediaCounts = self.getartistCLMediaCounts(media)
+        artist      = self.getartistMTName()
+        url         = self.getartistMTURL()
+        ID          = self.getartistMTDiscID(url)
+        pages       = self.getartistMTPages()
+        profile     = self.getartistMTProfile()
+        media       = self.getartistMTMedia(artist)
+        mediaCounts = self.getartistMTMediaCounts(media)
         
         err = [artist.err, url.err, ID.err, pages.err, profile.err, mediaCounts.err, media.err]
         
-        adc = artistCLDataClass(artist=artist, url=url, ID=ID, pages=pages, profile=profile, mediaCounts=mediaCounts, media=media, err=err)
+        adc = artistMTDataClass(artist=artist, url=url, ID=ID, pages=pages, profile=profile, mediaCounts=mediaCounts, media=media, err=err)
         
         return adc

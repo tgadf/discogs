@@ -1336,6 +1336,140 @@ class musicstackUtils:
 
 
 
+################################################################################################################
+#
+# MetalStorm
+#
+################################################################################################################
+class metalstormUtils:
+    def __init__(self):
+        self.baseURL  = "https://www.metalstorm.com/"
+        self.disc     = None
+        
+
+    def setDiscogs(self, disc):
+        self.disc = disc
+        
+        
+    def getBaseURL(self):
+        return baseURL
+    
+        
+    def getArtistID(self, url, debug=False):
+        print(url)
+        print(url.url)
+        codeData = url.url.split("band_id=")[1]
+        discID   = codeData.split("&")[0]            
+        return discID
+    
+    
+    def getArtistName(self, artist, debug=False):
+        if artist is None:
+            return "None"
+        return artist
+    
+
+    ###############################################################################
+    #
+    # Album Functions
+    #
+    ###############################################################################
+    def getAlbumID(self, name):
+        m = md5()
+        for val in reversed(name.split(" ")):
+            m.update(val.encode('utf-8'))
+        hashval = m.hexdigest()
+        discID  = str(int(hashval, 16) % int(1e14))
+            
+        return discID
+    
+    
+    def getArtistModVal(self, artistID):
+        if self.disc is not None:
+            modValue  = self.getDiscIDHashMod(discID=artistID, modval=self.disc.getMaxModVal())
+            return modValue
+        else:
+            raise ValueError("Must set discogs()!")
+            
+
+    
+    ###############################################################################
+    #
+    # Basic Artist IO Functions
+    #
+    ###############################################################################
+    def getArtistSavename(self, discID):
+        modValue  = self.discogsUtils.getDiscIDHashMod(discID=discID, modval=self.disc.getMaxModVal())
+        if modValue is not None:
+            outdir    = mkSubDir(artistDir, str(modValue))
+            savename  = setFile(outdir, discID+".p")
+            return savename
+        return None
+    
+    
+
+    ###############################################################################
+    #
+    # Discog Hash Functions
+    #
+    ###############################################################################
+    def getHashVal(self, artist, href):
+        m = md5()
+        if artist: m.update(artist)
+        if href:   m.update(href)
+        retval = m.hexdigest()
+        return retval
+
+    def getHashMod(self, hashval, modval):
+        ival = int(hashval, 16)
+        return ival % modval
+
+    def getDiscIDHashMod(self, discID, modval):
+        if discID == None:
+            return None
+        try:
+            ival = int(discID)
+        except:
+            return None
+        return ival % modval
+
+    def getArtistHashVal(self, artist, href):
+        artist = makeStrFromUnicode(artist)
+        hashval = getHashVal(artist, href)
+        return hashval
+
+    def getFileHashVal(self, ifile):
+        fname = getBaseFilename(ifile)
+        hname = makeStrFromUnicode(fname)
+        hashval = getHashVal(hname, None)
+        return hashval
+
+    def getArtistHashMod(self, artist, href, modval):
+        hashval = getArtistHashVal(artist,href)
+        return getHashMod(hashval, modval)
+
+    def getFileHashMod(self, ifile, modval):
+        hashval = getFileHashVal(ifile)
+        return getHashMod(hashval, modval)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
