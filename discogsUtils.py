@@ -1105,8 +1105,12 @@ class cdandlpUtils:
         return baseURL
     
         
-    def getArtistID(self, url, debug=False):        
-        url = url.replace("https://", "")
+    def getArtistID(self, url, debug=False):
+        try:
+            url = url.replace("https://", "")
+        except:
+            return None
+        
         m = md5()
         for val in reversed(url.split("/")):
             m.update(val.encode('utf-8'))

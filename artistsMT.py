@@ -114,13 +114,13 @@ class artistsMT():
     
     
     def downloadArtistFromID(self, artistID, sleeptime=5):
-        print("Downloading Artist Data for ID [{0}]".format(artistID))
+        #print("Downloading Artist Data for ID [{0}]".format(artistID))
         url = self.getArtistURLFromID(artistID)
         savename = self.getArtistSavename(artistID)
-        print(url)
-        print(savename)
-        self.downloadArtistURL(url, savename, debug=True, sleeptime=sleeptime)
-        print("Done with download artist URL")
+        #print(url)
+        #print(savename)
+        self.downloadArtistURL(url, savename, debug=False, sleeptime=sleeptime)
+        #print("Done with download artist URL")
         
         
     def downloadArtistURL(self, url, savename, parse=False, force=False, debug=False, sleeptime=2):
@@ -188,7 +188,7 @@ class artistsMT():
                 continue                  
 
             ## Download data
-            print("Downloading Idx URL: {0}".format(url))
+            #print("Downloading Idx URL: {0}".format(url))
             data, response = self.downloadURL(url)
             if response != 200:
                 print("Response is {0}. Error downloading {0}".format(response, url))
@@ -220,7 +220,7 @@ class artistsMT():
                         vals       = self.artist.getNamesAndURLs(trdata["Band"])[0]
                         artistName = vals.name
                         artistURL  = vals.url
-                        artistID   = dutils.getArtistID(vals)
+                        artistID   = self.discogsUtils.getArtistID(vals)
                         url        = self.getArtistURLFromID(artistID)
                         self.downloadArtistFromID(artistID, sleeptime=sleeptime)
 

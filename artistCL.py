@@ -210,13 +210,21 @@ class artistCL(discogs):
             auc = artistCLURLClass(url=url)
             return auc
 
+        auc = artistCLURLClass(err="NoForm")
+        return auc
+
     
 
     #######################################################################################################################################
     ## Artist ID
     #######################################################################################################################################                
     def getartistCLDiscID(self, url):
-        url = url.url
+        try:
+            url = url.url
+        except:
+            aic = artistCLIDClass(ID=None, err='NoURL')
+            return aic
+            
         artistID = self.dutils.getArtistID(url)
         aic = artistCLIDClass(ID=artistID)
         return aic

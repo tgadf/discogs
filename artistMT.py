@@ -143,7 +143,7 @@ class artistMTDataClass:
 class artistMT(discogs):
     def __init__(self, debug=False):
         self.debug = debug
-        self.dutils = cdandlpUtils()
+        self.dutils = metalstormUtils()
         
     def getData(self, inputdata, debug=False):
         if debug:

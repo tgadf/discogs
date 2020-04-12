@@ -269,81 +269,86 @@ class artistRC(discogs):
         amc  = artistRCMediaClass()
         
         mediaType = "Albums"
+        amc.media[mediaType] = []
         
         artistSection = self.bsdata.find("section", {"id": "album-artist"})
         if artistSection is None:
-            raise ValueError("Cannot find Artist Section")
+            pass
+            #raise ValueError("Cannot find Artist Section")
+        else:
+            articles = artistSection.findAll("article")
+            for ia,article in enumerate(articles):
+                ref = article.find('a')
+                if ref is None:
+                    raise ValueError("No ref in article")
+                albumURL = ref.attrs['href']
 
-        articles = artistSection.findAll("article")
-        for ia,article in enumerate(articles):
-            ref = article.find('a')
-            if ref is None:
-                raise ValueError("No ref in article")
-            albumURL = ref.attrs['href']
+                caption = ref.find("figcaption")
+                if caption is None:
+                    raise ValueError("No figcaption in article")
 
-            caption = ref.find("figcaption")
-            if caption is None:
-                raise ValueError("No figcaption in article")
+                b = caption.find("b")
+                if b is None:
+                    raise ValueError("No bold in caption")
 
-            b = caption.find("b")
-            if b is None:
-                raise ValueError("No bold in caption")
+                i = caption.find("i")
+                if i is None:
+                    raise ValueError("No italics in caption")
 
-            i = caption.find("i")
-            if i is None:
-                raise ValueError("No italics in caption")
+                albumName = b.text
+                albumYear = i.text
 
-            albumName = b.text
-            albumYear = i.text
 
-            
-            m = md5()
-            for val in albumURL.split("/"):
-                m.update(val.encode('utf-8'))
-            hashval = m.hexdigest()
-            code  = str(int(hashval, 16) % int(1e9))
+                m = md5()
+                for val in albumURL.split("/"):
+                    m.update(val.encode('utf-8'))
+                hashval = m.hexdigest()
+                code  = str(int(hashval, 16) % int(1e9))
 
-            artists = [artist.name]
+                artists = [artist.name]
 
-            amdc = artistRCMediaDataClass(album=albumName, url=albumURL, aclass=None, aformat=None, artist=artists, code=code, year=albumYear)
-            if amc.media.get(mediaType) is None:
-                amc.media[mediaType] = []
-            amc.media[mediaType].append(amdc)
+                amdc = artistRCMediaDataClass(album=albumName, url=albumURL, aclass=None, aformat=None, artist=artists, code=code, year=albumYear)
+                if amc.media.get(mediaType) is None:
+                    amc.media[mediaType] = []
+                amc.media[mediaType].append(amdc)
         
    
         mediaType = "Songs"
+        amc.media[mediaType] = []
         
         singlesSection = self.bsdata.find("ol", {"id": "songs-list"})
         if singlesSection is None:
-            raise ValueError("Cannot find Singles Section")
-        lis = singlesSection.findAll("li")
-        for li in lis:
-            ref = li.find('a')
-            if ref is None:
-                raise ValueError("No ref in article")
-            albumURL = ref.attrs['href']
-            
-            b = ref.find("b")
-            if b is None:
-                raise ValueError("No bold in ref")
-                
-            albumName = b.text
-            albumYear = None
+            pass
+            #raise ValueError("Cannot find Singles Section")
+        else:
+            lis = singlesSection.findAll("li")
+            for li in lis:
+                ref = li.find('a')
+                if ref is None:
+                    raise ValueError("No ref in article")
+                albumURL = ref.attrs['href']
 
-            
-            m = md5()
-            for val in albumURL.split("/"):
-                m.update(val.encode('utf-8'))
-            hashval = m.hexdigest()
-            code  = str(int(hashval, 16) % int(1e10))
+                b = ref.find("b")
+                if b is None:
+                    raise ValueError("No bold in ref")
 
-            artists = [artist.name]
+                albumName = b.text
+                albumYear = None
 
-            amdc = artistRCMediaDataClass(album=albumName, url=albumURL, aclass=None, aformat=None, artist=artists, code=code, year=albumYear)
-            if amc.media.get(mediaType) is None:
-                amc.media[mediaType] = []
-            amc.media[mediaType].append(amdc)
-        
+
+                m = md5()
+                for val in albumURL.split("/"):
+                    m.update(val.encode('utf-8'))
+                hashval = m.hexdigest()
+                code  = str(int(hashval, 16) % int(1e10))
+
+                artists = [artist.name]
+
+                amdc = artistRCMediaDataClass(album=albumName, url=albumURL, aclass=None, aformat=None, artist=artists, code=code, year=albumYear)
+                if amc.media.get(mediaType) is None:
+                    amc.media[mediaType] = []
+                amc.media[mediaType].append(amdc)
+
 
         return amc
     

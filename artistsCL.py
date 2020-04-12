@@ -1,5 +1,5 @@
 from fsUtils import setFile, isFile, setDir, isDir, mkDir, mkSubDir, setSubFile
-from fsUtils import removeFile
+from fsUtils import removeFile, moveFile
 from fileUtils import getBasename, getBaseFilename
 from ioUtils import getFile, saveFile, saveJoblib
 from webUtils import getWebData, getHTML, getURL
@@ -380,10 +380,17 @@ class artistsCL():
                 if info.ID.ID != artistID:
                     print("ID From Name: {0}".format(artistID))
                     print("ID From File: {0}".format(info.ID.ID))
-
-                    print("File: {0}".format(ifile))
-                    print("Info: {0}".format(info.url.get()))
-                    1/0
+                    
+                    newname = self.getArtistSavename(info.ID.ID)
+                    try:
+                        moveFile(ifile, newname, debug=True)
+                        continue
+                    except:
+                        removeFile(ifile)
+                        continue
+                        print("File: {0}".format(ifile))
+                        print("Info: {0}".format(info.url.get()))
+                        1/0
                 
                 dbdata[artistID] = info
 
