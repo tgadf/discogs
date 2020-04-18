@@ -1360,10 +1360,11 @@ class metalstormUtils:
     
         
     def getArtistID(self, url, debug=False):
-        print(url)
-        print(url.url)
-        codeData = url.url.split("band_id=")[1]
-        discID   = codeData.split("&")[0]            
+        try:
+            codeData = url.url.split("band_id=")[1]
+            discID   = codeData.split("&")[0]
+        except:
+            discID   = None
         return discID
     
     
