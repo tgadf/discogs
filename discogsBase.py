@@ -16,7 +16,8 @@ class discogs():
         self.name       = "Discog"
         self.localpath  = setDir("/Users/tgadfort/Music", self.name, forceExist=False)
         #self.savepath   = setDir("/Volumes/Music", self.name, forceExist=False)
-        self.savepath   = setDir("/Volumes/Biggy", self.name, forceExist=False)
+        #self.savepath   = setDir("/Volumes/Biggy", self.name, forceExist=False)
+        self.savepath   = setDir("/Volumes/Piggy", self.name, forceExist=False)
 
         self.codepath   = getcwd()
         
@@ -363,8 +364,14 @@ class discogs():
     
     
     ###############################################################################
+    #
     # Master Discogs DB
+    #
     ###############################################################################
+
+    ###############################################################################
+    ### Master ?
+    ###############################################################################    
     def getMasterDiscogsDB(self, debug=False):
         return self.getDBData("DB", "Master")
     
@@ -372,13 +379,19 @@ class discogs():
         savename = self.getDBData("DB", "Master", returnName=True)
         return savename
     
+    ###############################################################################
+    ### Master Artist
+    ###############################################################################
     def getMasterArtistDiscogsDB(self, debug=False):
         return self.getDBData("DB", "MasterArtist")
-    
+
     def getMasterArtistDiscogsDBFilename(self, debug=False):
         savename = self.getDBData("DB", "MasterArtist", returnName=True)
         return savename
     
+    ###############################################################################
+    ### Master Slim Artist
+    ###############################################################################
     def getMasterSlimArtistDiscogsDB(self, debug=False):
         return self.getDBData("DB", "MasterSlimArtist")
     
@@ -386,13 +399,39 @@ class discogs():
         savename = self.getDBData("DB", "MasterSlimArtist", returnName=True)
         return savename
     
+    ###############################################################################
+    ### Master Known Slim Artist
+    ###############################################################################
+    def getMasterKnownSlimArtistDiscogsDB(self, debug=False):
+        return self.getDBData("DB", "MasterKnownSlimArtist")
+    
+    def getMasterKnownSlimArtistDiscogsDBFilename(self, debug=False):
+        savename = self.getDBData("DB", "MasterKnownSlimArtist", returnName=True)
+        return savename
+
+    ###############################################################################
+    ### Master Artist Albums
+    ###############################################################################    
     def getMasterArtistAlbumsDiscogsDB(self, debug=False):
         return self.getDBData("DB", "MasterArtistAlbums")
     
     def getMasterArtistAlbumsDiscogsDBFilename(self, debug=False):
         savename = self.getDBData("DB", "MasterArtistAlbums", returnName=True)
         return savename
+
+    ###############################################################################
+    ### Master Known Artist Albums
+    ###############################################################################    
+    def getMasterKnownArtistAlbumsDiscogsDB(self, debug=False):
+        return self.getDBData("DB", "MasterKnownArtistAlbums")
     
+    def getMasterKnownArtistAlbumsDiscogsDBFilename(self, debug=False):
+        savename = self.getDBData("DB", "MasterKnownArtistAlbums", returnName=True)
+        return savename
+    
+    ###############################################################################
+    ### Master Artist Metadata
+    ###############################################################################    
     def getMasterArtistMetadataDiscogsDB(self, debug=False):
         return self.getDBData("DB", "MasterArtistMetadata")
     
@@ -400,6 +439,9 @@ class discogs():
         savename = self.getDBData("DB", "MasterArtistMetadata", returnName=True)
         return savename
     
+    ###############################################################################
+    ### Master Albums
+    ###############################################################################    
     def getMasterAlbumDiscogsDB(self, debug=False):
         return self.getDBData("DB", "MasterAlbum")
     
@@ -408,11 +450,15 @@ class discogs():
         return savename
     
         
-    ##################################  Artists ##################################
+    ###############################################################################
+    #
+    # Artist Lookups
+    #
+    ###############################################################################
     def getArtistIDToNameData(self, debug=False):
         return self.getDBData("IDToName", "Artist", debug=debug)
     
-    def getArtistNameToIDData(self, debug=False):        
+    def getArtistNameToIDData(self, debug=False):
         return self.flip(self.getArtistIDToNameData())
         
     def getArtistIDToRefData(self, debug=False):

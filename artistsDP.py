@@ -270,9 +270,15 @@ class artistsDP():
         
         files = glob("/Volumes/Biggy/Discog/artists-datpiff/*/*.p")
         print("Found {0} downloaded search terms".format(len(files)))
-        for ifile in files:
+        for i,ifile in enumerate(files):
+            if ifile.endswith("datPiffKnown.p"):
+                continue
             fileresults = getFile(ifile)
-            for fileresult in fileresults:
+            if debug:
+                print(i,'/',len(files),'\t',ifile)
+            for j,fileresult in enumerate(fileresults):
+                if debug:
+                    print("  ",j,'/',len(fileresults))
                 mixArtists  = fileresult["ArtistName"]
                 albumName   = fileresult["AlbumName"]
                 albumURL    = fileresult["AlbumURL"]
