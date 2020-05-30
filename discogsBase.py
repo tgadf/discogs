@@ -420,6 +420,16 @@ class discogs():
         return savename
 
     ###############################################################################
+    ### Master Slim Artist Albums
+    ###############################################################################    
+    def getMasterSlimArtistAlbumsDiscogsDB(self, debug=False):
+        return self.getDBData("DB", "MasterSlimArtistAlbums")
+    
+    def getMasterSlimArtistAlbumsDiscogsDBFilename(self, debug=False):
+        savename = self.getDBData("DB", "MasterSlimArtistAlbums", returnName=True)
+        return savename
+
+    ###############################################################################
     ### Master Known Artist Albums
     ###############################################################################    
     def getMasterKnownArtistAlbumsDiscogsDB(self, debug=False):
