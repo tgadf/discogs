@@ -3,6 +3,7 @@ from fsUtils import isFile
 from webUtils import getHTML, isBS4
 from strUtils import fixName
 from math import ceil, floor
+import json
 
 from discogsBase import discogs
 
@@ -218,7 +219,7 @@ class artistDC(discogs):
     #######################################################################################################################################                
     def getArtistDCDiscID(self, suburl):
         ival = "/artist"
-        if isinstance(suburl, artistURLClass):
+        if isinstance(suburl, artistDCURLClass):
             suburl = suburl.url
         if not isinstance(suburl, str):
             aic = artistDCIDClass(err="NotStr")            
@@ -265,7 +266,15 @@ class artistDC(discogs):
                 artist = fixName(artist)
                 anc = artistDCNameClass(name=artist, err=None)
             else:
-                anc = artistDCNameClass(name=artist, err="Fix")
+                result = self.bsdata.find("script", {"id": "artist_schema"})
+                if result is None:
+                    anc = artistDCNameClass(name=artist, err="Fix")
+                else:
+                    try:
+                        artist = fixName(json.loads(result.text)["name"])
+                        anc = artistDCNameClass(name=artist, err=None)
+                    except:
+                        anc = artistDCNameClass(name=artist, err="JSON")
         else:
             anc = artistDCNameClass(err="NoH1")
 
@@ -277,7 +286,7 @@ class artistDC(discogs):
     ## Artist Media
     #######################################################################################################################################
     def getArtistDCMediaAlbum(self, td):
-        amac = artistMediaAlbumClass()
+        amac = artistDCMediaAlbumClass()
         for span in td.findAll("span"):
             attrs = span.attrs
             if attrs.get("class"):
@@ -348,6 +357,9 @@ class artistDC(discogs):
             if result:
                 year = result.text
 
+            if name is None:
+                name = "Albums"
+                amc.media[name] = []
             amdc = artistDCMediaDataClass(album=album, url=url, aclass=albumclass, aformat=albumformat, artist=artists, code=code, year=year)
             amc.media[name].append(amdc)
             #if debug: print "  Found album:",album,"of type:",name
@@ -506,6 +518,6 @@ class artistDC(discogs):
         
         err = [artist.err, url.err, ID.err, pages.err, profile.err, mediaCounts.err, media.err]
         
-        adc = artistDataClass(artist=artist, url=url, ID=ID, pages=pages, profile=profile, mediaCounts=mediaCounts, media=media, err=err)
+        adc = artistDCDataClass(artist=artist, url=url, ID=ID, pages=pages, profile=profile, mediaCounts=mediaCounts, media=media, err=err)
         
         return adc

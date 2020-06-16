@@ -12,8 +12,9 @@ from collections import Counter
 
 
 class discogs():
-    def __init__(self, base='discogs'):
+    def __init__(self, base='discogs', debug=False):
         self.name       = "Discog"
+        self.debug      = debug
         self.localpath  = setDir("/Users/tgadfort/Music", self.name, forceExist=False)
         #self.savepath   = setDir("/Volumes/Music", self.name, forceExist=False)
         #self.savepath   = setDir("/Volumes/Biggy", self.name, forceExist=False)
@@ -66,7 +67,7 @@ class discogs():
         else:
             raise ValueError("Base is illegal: [{0}]")    
                 
-        self.createDirectories(debug=False)
+        self.createDirectories(debug=self.debug)
         
         #self.unitTests()
         
@@ -125,12 +126,12 @@ class discogs():
 
         if self.base == 'discogs':
             names = ["diagnostic"]
-            dirnames += ["{0}-{1}".format(x, self.base) for x in names]  
-            dirnames += ["db-{0}".format(self.base)]
+            dbdirnames += ["{0}-{1}".format(x, self.base) for x in names]  
+            dbdirnames += ["db-{0}".format(self.base)]
         elif self.base in ['allmusic', 'lastfm', 'musicbrainz', 'acebootlegs', 'rateyourmusic', 'datpiff', 'rockcorner', 'cdandlp', 'musicstack', 'metalstorm']:
             names = ["diagnostic"]
-            dirnames += ["{0}-{1}".format(x, self.base) for x in names]  
-            dirnames += ["db-{0}".format(self.base)]
+            dbdirnames += ["{0}-{1}".format(x, self.base) for x in names]  
+            dbdirnames += ["db-{0}".format(self.base)]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
 
@@ -145,7 +146,18 @@ class discogs():
             else:
                 if debug:
                     print("{0} exists".format(dirname))
+
                     
+        self.dbdirnames = dict(zip(dbdirnames, [setDir(self.getLocalDir(), x) for x in dbdirnames]))
+        for name, dbdirname in self.dbdirnames.items():
+            if not isDir(dbdirname):
+                print("Creating {0}".format(dbdirname))
+                mkDir(dbdirname, debug=True)
+            else:
+                if debug:
+                    print("{0} exists".format(dbdirname))
+                    
+
                     
     
     ###############################################################################
@@ -173,8 +185,8 @@ class discogs():
     ###############################################################################
     def getDiscogDBDir(self, debug=False):
         key = "db-{0}".format(self.base)
-        if self.dirnames.get(key) is not None:
-            return self.dirnames[key]
+        if self.dbdirnames.get(key) is not None:
+            return self.dbdirnames[key]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
 
@@ -195,8 +207,8 @@ class discogs():
     ###############################################################################
     def getDiagnosticDir(self, debug=False):
         key = "diagnostic-{0}".format(self.base)
-        if self.dirnames.get(key) is not None:
-            return self.dirnames[key]
+        if self.dbdirnames.get(key) is not None:
+            return self.dbdirnames[key]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
 

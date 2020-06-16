@@ -199,6 +199,9 @@ class masterdb:
         discdf.columns = cols
         print("\tShape --> {0}".format(discdf.shape))
 
+        discdf["Ref"] = artistIDtoRef
+        print("\tShape --> {0}".format(discdf.shape))
+
         print("  Finding Real Artist Name")
         discdf[["Artist", "Num"]] = DataFrame(discdf['Name'].apply(self.realName).tolist(), index=discdf.index)
         print("\tShape --> {0}".format(discdf.shape))

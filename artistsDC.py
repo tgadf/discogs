@@ -63,7 +63,8 @@ class artistsDC():
         
         baseURL = self.disc.discogURL
         url     = urllib.parse.urljoin(baseURL, quote(artistRef))
-        url     = urllib.parse.urljoin(url, "?sort=year%2Casc&limit=500") ## Make sure we get 500 entries)
+        #url     = urllib.parse.urljoin(url, "?sort=year%2Casc&limit=500") ## Make sure we get 500 entries)
+        #url     = urllib.parse.urljoin(url, "?sort=year%2Casc&limit=500") ## Make sure we get 500 entries)
         if isinstance(page, int) and page > 1:
             pageURL = "&page={0}".format(page)
             url = "{0}{1}".format(url, pageURL)
@@ -75,6 +76,29 @@ class artistsDC():
         modValue  = self.discogsUtils.getDiscIDHashMod(discID=discID, modval=self.disc.getMaxModVal())
         if modValue is not None:
             outdir    = mkSubDir(artistDir, str(modValue))
+            if isinstance(page, int) and page > 1:
+                outdir = mkSubDir(outdir, "extra")
+                savename  = setFile(outdir, discID+"-{0}.p".format(page))
+            else:
+                savename  = setFile(outdir, discID+".p")
+                
+            return savename
+        return None
+    
+    
+    def getArtistUnofficialURL(self, artistRef, page=1):
+        url = self.getArtistURL(artistRef)
+        url = "{0}{1}".format(url, "?type=Unofficial&subtype=Albums&filter_anv=0&page=1&limit=500")
+        #https://www.discogs.com/artist/144998-Black-Sabbath?type=Unofficial&subtype=Albums&filter_anv=0
+        return url
+    
+    
+    def getArtistUnofficialSavename(self, discID, page=1):
+        artistDir = self.disc.getArtistsDir()
+        modValue  = self.discogsUtils.getDiscIDHashMod(discID=discID, modval=self.disc.getMaxModVal())
+        if modValue is not None:
+            outdir    = mkSubDir(artistDir, str(modValue))
+            outdir    = mkSubDir(outdir, "unofficial")
             if isinstance(page, int) and page > 1:
                 outdir = mkSubDir(outdir, "extra")
                 savename  = setFile(outdir, discID+"-{0}.p".format(page))
@@ -102,12 +126,18 @@ class artistsDC():
         return data, response.getcode()
 
 
-    
     def downloadArtistFromID(self, artistID, artistRef, force=False):
         print("Downloading Artist Data for ID [{0}] and Ref [{1}]".format(artistID, artistRef))
         url = self.getArtistURL(artistRef)
         savename = self.getArtistSavename(artistID)
-        self.downloadArtistURL(url, savename, force=force)
+        self. w(url, savename, force=force)
+
+
+    def downloadArtistUnofficialFromID(self, artistID, artistRef, force=False):
+        print("Downloading Artist Data for ID [{0}] and Ref [{1}]".format(artistID, artistRef))
+        url = self.getArtistUnofficialURL(artistRef)
+        savename = self.getArtistUnofficialSavename(artistID)
+        self.downloadArtistURL(url, savename, force=force, parse=False)
         
 
     def downloadArtistURL(self, url, savename, parse=True, force=False, debug=False, sleeptime=2):
