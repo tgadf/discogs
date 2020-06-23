@@ -5,7 +5,7 @@ from strUtils import fixName
 from math import ceil, floor
 import json
 
-from discogsBase import discogs
+from dbBase import dbBase
 
 class artistDCIDClass:
     def __init__(self, ID=None, err=None):
@@ -137,7 +137,7 @@ class artistDCDataClass:
 
 
         
-class artistDC(discogs):
+class artistDC(dbBase):
     def __init__(self, debug=False):
         self.debug = debug
         

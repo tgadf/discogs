@@ -11,13 +11,11 @@ from time import sleep
 from collections import Counter
 
 
-class discogs():
-    def __init__(self, base='discogs', debug=False):
-        self.name       = "Discog"
+class dbBase():
+    def __init__(self, base, debug=False):
+        self.name       = base
         self.debug      = debug
         self.localpath  = setDir("/Users/tgadfort/Music", self.name, forceExist=False)
-        #self.savepath   = setDir("/Volumes/Music", self.name, forceExist=False)
-        #self.savepath   = setDir("/Volumes/Biggy", self.name, forceExist=False)
         self.savepath   = setDir("/Volumes/Piggy", self.name, forceExist=False)
 
         self.codepath   = getcwd()

@@ -5,10 +5,10 @@ from strUtils import fixName
 from math import ceil, floor
 from hashlib import md5
 import re
-from collection import Counter
+from collections import Counter
 from unicodedata import normalize
 
-from discogsBase import discogs
+from dbBase import dbBase
 
 class artistABIDClass:
     def __init__(self, ID=None, err=None):
@@ -140,7 +140,7 @@ class artistABDataClass:
 
 
         
-class artistAB(discogs):
+class artistAB(dbBase):
     def __init__(self, debug=False):
         self.debug = debug
         

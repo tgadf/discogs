@@ -4,7 +4,7 @@ from webUtils import getHTML, isBS4
 from strUtils import fixName
 from math import ceil, floor
 
-from discogsBase import discogs
+from dbBase import dbBase
 
 class artistAMIDClass:
     def __init__(self, ID=None, err=None):
@@ -136,7 +136,7 @@ class artistAMDataClass:
 
 
         
-class artistAM(discogs):
+class artistAM(dbBase):
     def __init__(self, debug=False):
         self.debug = debug
         

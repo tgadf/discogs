@@ -10,7 +10,6 @@ from math import ceil
 import urllib
 from glob import glob
 from os.path import join
-from artists import artists
 
 class collections():
     def __init__(self, discog, basedir=None):

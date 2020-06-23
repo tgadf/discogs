@@ -5,7 +5,7 @@ from strUtils import fixName
 from math import ceil, floor
 from hashlib import md5
 
-from discogsBase import discogs
+from dbBase import dbBase
 
 class artistRCIDClass:
     def __init__(self, ID=None, err=None):
@@ -137,7 +137,7 @@ class artistRCDataClass:
 
 
         
-class artistRC(discogs):
+class artistRC(dbBase):
     def __init__(self, debug=False):
         self.debug = debug
         

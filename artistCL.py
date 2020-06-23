@@ -5,10 +5,8 @@ from strUtils import fixName
 from math import ceil, floor
 import json
 
-from discogsBase import discogs
+from dbBase import dbBase
 from discogsUtils import cdandlpUtils
-
-
 
 class artistCLIDClass:
     def __init__(self, ID=None, err=None):
@@ -140,7 +138,7 @@ class artistCLDataClass:
 
 
         
-class artistCL(discogs):
+class artistCL(dbBase):
     def __init__(self, debug=False):
         self.debug = debug
         self.dutils = cdandlpUtils()

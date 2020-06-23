@@ -5,7 +5,7 @@ from strUtils import fixName
 from math import ceil, floor
 import json
 
-from discogsBase import discogs
+from dbBase import dbBase
 from discogsUtils import lastfmUtils
 
 
@@ -140,7 +140,7 @@ class artistLMDataClass:
 
 
         
-class artistLM(discogs):
+class artistLM(dbBase):
     def __init__(self, debug=False):
         self.debug = debug
         self.dutils = lastfmUtils()

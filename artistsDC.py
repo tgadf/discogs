@@ -9,7 +9,7 @@ from collections import Counter
 from math import ceil
 from time import sleep
 from time import mktime, gmtime
-from artist import artist
+from artistDC import artistDC
 from discogsUtils import discogsUtils
 import urllib
 from urllib.parse import quote
@@ -19,7 +19,7 @@ class artistsDC():
         self.disc = discog
         self.name = "artists"
         
-        self.artist = artist()
+        self.artist = artistDC()
         
         ## General Imports
         self.getCodeDir          = self.disc.getCodeDir
@@ -309,7 +309,7 @@ class artistsDC():
     
     def parseArtistModValExtraFiles(self, modVal, debug=False, force=False):
         print("Parsing Artist Extra Files For ModVal {0}".format(modVal))
-        artistInfo = artist()
+        artistInfo = artistDC()
 
         artistDir = self.disc.getArtistsDir()
         maxModVal = self.disc.getMaxModVal()
