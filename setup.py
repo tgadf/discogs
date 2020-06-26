@@ -3,7 +3,7 @@ import setuptools
 
 setup(
   name = 'discogs',
-  py_modules = ['dbBase', 'discogsUtils', 'masterdb', 'mainDB'],
+  py_modules = ['dbBase', 'discogsUtils', 'masterdb', 'mainDB', 'artistAB', 'artistAM', 'artistCL', 'artistDC', 'artistDP', 'artistLM', 'artistMB', 'artistMS', 'artistMT', 'artistRC', 'artistRM', 'artistsMT'], #, 'dbArtistsBase', 'dbArtistsDiscogs', 'dbArtistsAllMusic', 'dbArtistsMusicBrainz', 'dbArtistsLastFM', 'dbArtistsRockCorner', 'dbArtistsDatPiff', 'dbArtistsAceBootlegs', 'dbArtistsCDandLP', 'dbArtistsRateYourMusic', 'dbArtistsMusicStack'],
   version = '0.0.1',
   description = 'A Python Wrapper for Discogs Data',
   long_description = open('README.md').read(),
