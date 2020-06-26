@@ -2,9 +2,10 @@ from masterdb import masterdb
 from pandas import concat
 
 class mainDB:
-    def __init__(self, mdb=None, create=False):
+    def __init__(self, mdb=None, create=False, debug=False):
         self.mdb    = mdb
         self.create = create
+        self.debug  = debug
 
         self.slimArtistDB      = {}
         self.knownSlimArtistDB = {}
@@ -19,108 +20,70 @@ class mainDB:
         
         
     def setDBBasic(self):
-        
+        if self.debug:
+            print("Setting Basic Database Objects")
+
         dbdata = {}
-        keys   = ["Artists", "Artist", "Utils"]
 
-        ### Discogs
-        from artistsDC import artistsDC
-        from artistDC import artistDC
-        from discogsUtils import discogsUtils
-        dbinfo = [artistsDC, artistDC, discogsUtils]
-        dbinfo = dict(zip(keys, dbinfo))
-        dbdata["Discogs"] = dbinfo
+        from dbArtistsDiscogs import dbArtistsDiscogs
+        dbArtists = dbArtistsDiscogs()
+        dbdata[dbArtists.db] = [dbArtists.disc, dbArtists, dbArtists.artist, dbArtists.dutils]
 
-        ### AllMusic
-        from artistsAM import artistsAM
-        from artistAM import artistAM
-        from discogsUtils import allmusicUtils
-        dbinfo = [artistsAM, artistAM, allmusicUtils]
-        dbinfo = dict(zip(keys, dbinfo))
-        dbdata["AllMusic"] = dbinfo
 
-        ### MusicBrainz
-        from artistsMB import artistsMB
-        from artistMB import artistMB
-        from discogsUtils import musicbrainzUtils
-        dbinfo = [artistsMB, artistMB, musicbrainzUtils]
-        dbinfo = dict(zip(keys, dbinfo))
-        dbdata["MusicBrainz"] = dbinfo
+        from dbArtistsAllMusic import dbArtistsAllMusic
+        dbArtists = dbArtistsAllMusic()
+        dbdata[dbArtists.db] = [dbArtists.disc, dbArtists, dbArtists.artist, dbArtists.dutils]
 
-        ## AceBootlegs
-        from artistAB import artistAB
-        from artistsAB import artistsAB
-        from discogsUtils import acebootlegsUtils
-        dbinfo = [artistsAB, artistAB, acebootlegsUtils]
-        dbinfo = dict(zip(keys, dbinfo))
-        dbdata["AceBootlegs"] = dbinfo
 
-        ## RateYourMusic
-        from artistRM import artistRM
-        from artistsRM import artistsRM
-        from discogsUtils import rateyourmusicUtils
-        dbinfo = [artistsRM, artistRM, rateyourmusicUtils]
-        dbinfo = dict(zip(keys, dbinfo))
-        dbdata["RateYourMusic"] = dbinfo
+        from dbArtistsMusicBrainz import dbArtistsMusicBrainz
+        dbArtists = dbArtistsMusicBrainz()
+        dbdata[dbArtists.db] = [dbArtists.disc, dbArtists, dbArtists.artist, dbArtists.dutils]
 
-        ## LastFM
-        from artistLM import artistLM
-        from artistsLM import artistsLM
-        from discogsUtils import lastfmUtils
-        dbinfo = [artistsLM, artistLM, lastfmUtils]
-        dbinfo = dict(zip(keys, dbinfo))
-        dbdata["LastFM"] = dbinfo
 
-        ## DatPiff
-        from artistDP import artistDP
-        from artistsDP import artistsDP
-        from discogsUtils import datpiffUtils
-        dbinfo = [artistsDP, artistDP, datpiffUtils]
-        dbinfo = dict(zip(keys, dbinfo))
-        dbdata["DatPiff"] = dbinfo
+        from dbArtistsLastFM import dbArtistsLastFM
+        dbArtists = dbArtistsLastFM()
+        dbdata[dbArtists.db] = [dbArtists.disc, dbArtists, dbArtists.artist, dbArtists.dutils]
 
-        ## RockCorner
-        from artistRC import artistRC
-        from artistsRC import artistsRC
-        from discogsUtils import rockcornerUtils
-        dbinfo = [artistsRC, artistRC, rockcornerUtils]
-        dbinfo = dict(zip(keys, dbinfo))
-        dbdata["RockCorner"] = dbinfo
 
-        ## CDandLP
-        from artistCL import artistCL
-        from artistsCL import artistsCL
-        from discogsUtils import cdandlpUtils
-        dbinfo = [artistsCL, artistCL, cdandlpUtils]
-        dbinfo = dict(zip(keys, dbinfo))
-        dbdata["CDandLP"] = dbinfo
+        from dbArtistsRockCorner import dbArtistsRockCorner
+        dbArtists = dbArtistsRockCorner()
+        dbdata[dbArtists.db] = [dbArtists.disc, dbArtists, dbArtists.artist, dbArtists.dutils]
 
-        ## MusicStack
-        from artistMS import artistMS
-        from artistsMS import artistsMS
-        from discogsUtils import musicstackUtils
-        dbinfo = [artistsMS, artistMS, musicstackUtils]
-        dbinfo = dict(zip(keys, dbinfo))
-        dbdata["MusicStack"] = dbinfo
 
-        ## MetalStorm
-        from artistMT import artistMT
-        from artistsMT import artistsMT
-        from discogsUtils import metalstormUtils
-        dbinfo = [artistsMT, artistMT, metalstormUtils]
-        dbinfo = dict(zip(keys, dbinfo))
-        dbdata["MetalStorm"] = dbinfo
+        from dbArtistsDatPiff import dbArtistsDatPiff
+        dbArtists = dbArtistsDatPiff()
+        dbdata[dbArtists.db] = [dbArtists.disc, dbArtists, dbArtists.artist, dbArtists.dutils]
 
-        ## General
-        from discogsBase import discogs
+
+        from dbArtistsAceBootlegs import dbArtistsAceBootlegs
+        dbArtists = dbArtistsAceBootlegs()
+        dbdata[dbArtists.db] = [dbArtists.disc, dbArtists, dbArtists.artist, dbArtists.dutils]
+
+
+        from dbArtistsCDandLP import dbArtistsCDandLP
+        dbArtists = dbArtistsCDandLP()
+        dbdata[dbArtists.db] = [dbArtists.disc, dbArtists, dbArtists.artist, dbArtists.dutils]
+
+
+        from dbArtistsRateYourMusic import dbArtistsRateYourMusic
+        dbArtists = dbArtistsRateYourMusic()
+        dbdata[dbArtists.db] = [dbArtists.disc, dbArtists, dbArtists.artist, dbArtists.dutils]
+
+
+        from dbArtistsMusicStack import dbArtistsMusicStack
+        dbArtists = dbArtistsMusicStack()
+        dbdata[dbArtists.db] = [dbArtists.disc, dbArtists, dbArtists.artist, dbArtists.dutils]
+
+
+        keys   = ["Disc", "Artists", "Artist", "Utils"]
         for db in dbdata.keys():
-            print("Creating DB Info For {0}".format(db))
-            dbdata[db]["Disc"]    = discogs(db.lower())
-            dbdata[db]["Artist"]  = dbdata[db]["Artist"](dbdata[db]["Disc"])
-            dbdata[db]["Artists"] = dbdata[db]["Artists"](dbdata[db]["Disc"])
-            dbdata[db]["Utils"]   = dbdata[db]["Utils"]()
+            if self.debug:
+                print("  Creating Database Records for {0}".format(db))
+            dbdata[db] = dict(zip(keys, dbdata[db]))
             
         self.dbdata = dbdata
+        if self.debug:
+            print("Available DBs: {0}".format(", ".join(self.dbdata.keys())))
         
         
         
