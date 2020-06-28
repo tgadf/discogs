@@ -5,7 +5,9 @@ from discogsUtils import rateyourmusicUtils
 import urllib
 from urllib.parse import quote
 from webUtils import getHTML
-from fsUtils import isFile
+from fsUtils import isFile, setDir
+from ioUtils import getFile, saveFile
+from searchUtils import findPatternExt
 from hashlib import md5
 
 
@@ -43,3 +45,19 @@ class dbArtistsRateYourMusic(dbArtistsBase):
     def searchForArtist(self, artist):
         print("\n\n===================== Searching For {0} =====================".format(artist))
         return
+    
+    
+    ##################################################################################################################
+    # Parse Downloaded Files
+    ##################################################################################################################
+    def parseDownloadedFiles(self):
+        artistDir = self.disc.getArtistsDir()
+        dataDir   = setDir(artistDir, "data")
+        files     = findPatternExt(dataDir, pattern="Rate Your Music", ext=".html")
+        #"/Volumes/Biggy/Discog/artists-rateyourmusic/data/", pattern="Rate Your Music", ext=".html")
+        for ifile in files:
+            htmldata = getFile(ifile)
+            retval   = self.getData(ifile)
+            artistID = retval.ID.ID
+            savename = self.getArtistSavename(artistID)
+            saveFile(idata=htmldata, ifile=savename, debug=True)

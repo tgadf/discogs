@@ -1,7 +1,10 @@
-from fsUtils import setDir, isDir, mkDir, mkSubDir, setFile, isFile
-from ioUtils import saveFile
+from fsUtils import setDir, isDir, mkDir, mkSubDir, setFile, isFile, setSubFile
+from ioUtils import saveFile, getFile
+from fileUtils import getBaseFilename
+from searchUtils import findExt
 import urllib
-from time import sleep
+from time import sleep, mktime, gmtime
+
 
 class dbArtistsBase():
     def __init__(self, db, disc, artist, dutils, basedir=None, debug=False):
@@ -39,6 +42,19 @@ class dbArtistsBase():
         ifile = self.getArtistSavename(artistID, 1)
         info  = self.getData(ifile)
         return info
+    
+    
+    ###############################################################################
+    # ModVals
+    ###############################################################################
+    def getModVals(self):
+        return self.disc.getModValList()
+        #return [str(x) for x in range(self.disc.getMaxModVal)]
+    
+    def getModValDirs(self):
+        modVals = self.getModVals()
+        retval  = [setDir(self.getArtistsDir(), str(modVal)) for modVal in modVals]
+        return retval
     
     
     ###############################################################################
@@ -284,7 +300,8 @@ class dbArtistsBase():
 
                     print("File: {0}".format(ifile))
                     print("Info: {0}".format(info.url.get()))
-                    1/0
+                    continue
+                    #1/0
                 
                 dbdata[artistID] = info
 
@@ -500,3 +517,45 @@ class dbArtistsBase():
             savename = setFile(artistDBDir, "{0}-DB.p".format(modVal))     
             print("Saving {0} artist IDs to {1}".format(len(dbdata), savename))
             saveFile(idata=dbdata, ifile=savename)
+        
+        
+    
+    ################################################################################
+    # Collect Metadata About Artists (4)
+    ################################################################################
+    def createArtistModValMetadata(self, modVal, db=None, debug=False):
+        if db is None:
+            db = self.disc.getArtistsDBModValData(modVal)
+    
+        artistIDMetadata = {k: [v.artist.name, v.url.url] for k,v in db.items()}
+        
+        for artistID,artistData in db.items():
+            if artistData.profile.variations is not None:
+                artistIDMetadata[artistID].append([v2.name for v2 in artistData.profile.variations])
+            else:
+                artistIDMetadata[artistID].append([artistData.artist.name])
+        
+        artistDBDir = self.disc.getArtistsDBDir()     
+        savename    = setSubFile(artistDBDir, "metadata", "{0}-Metadata.p".format(modVal))
+        
+        print("Saving {0} new artist IDs name data to {1}".format(len(artistIDMetadata), savename))
+        saveFile(idata=artistIDMetadata, ifile=savename)
+        
+        
+    def createArtistAlbumModValMetadata(self, modVal, db=None, debug=False):
+        if db is None:
+            db = self.disc.getArtistsDBModValData(modVal)
+        
+        artistIDMetadata = {}
+        for artistID,artistData in db.items():
+            artistIDMetadata[artistID] = {}
+            for mediaName,mediaData in artistData.media.media.items():
+                albumURLs  = {mediaValues.code: mediaValues.url for mediaValues in mediaData}
+                albumNames = {mediaValues.code: mediaValues.album for mediaValues in mediaData}
+                artistIDMetadata[artistID][mediaName] = [albumNames, albumURLs]
+        
+        artistDBDir = self.disc.getArtistsDBDir()     
+        savename    = setSubFile(artistDBDir, "metadata", "{0}-MediaMetadata.p".format(modVal))
+        
+        print("Saving {0} new artist IDs media data to {1}".format(len(artistIDMetadata), savename))
+        saveFile(idata=artistIDMetadata, ifile=savename)

@@ -34,7 +34,7 @@ class mainDB:
         
         
     def getDBs(self):
-        return self.dbdbdata.keys()
+        return self.dbdata.keys()
         
         
     def setDBBasic(self):
