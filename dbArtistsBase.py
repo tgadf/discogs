@@ -224,8 +224,8 @@ class dbArtistsBase():
                     saveIt += len(iVal)
                 dbdata[artistID].media.media[k] = list(Tretval.values())
                 
-            
-            print("File:",j," \tArtist:",artistID,'-->',currentMedia,'to',sum([len(x) for x in dbdata[artistID].media.media.values()]))
+            if debug:
+                print("File:",j," \tArtist:",artistID,'-->',currentMedia,'to',sum([len(x) for x in dbdata[artistID].media.media.values()]))
             
             
         if saveIt > 0:
@@ -295,6 +295,8 @@ class dbArtistsBase():
                 info   = artistInfo.getData(ifile)
                 
                 if info.ID.ID != artistID:
+                    if debug is False:
+                        continue
                     print("ID From Name: {0}".format(artistID))
                     print("ID From File: {0}".format(info.ID.ID))
 

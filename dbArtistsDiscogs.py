@@ -47,7 +47,7 @@ class dbArtistsDiscogs(dbArtistsBase):
     ##################################################################################################################
     # Search Functions
     ##################################################################################################################
-    def parseSearchArtist(self, artist, data):
+    def parseSearchArtist(self, artist, data, force=False):
         if data is None:
             return None
         
@@ -96,9 +96,11 @@ class dbArtistsDiscogs(dbArtistsBase):
 
             print(iArtist,'/',len(artistDB),'\t:',len(discID),'\t',url)
             if isFile(savename):
-                continue
+                if force is False:
+                    print("\t--> Exists.")
+                    continue
 
-            self.downloadArtistURL(url, savename, sleeptime=self.sleeptime)
+            self.downloadArtistURL(url, savename, force=force, sleeptime=self.sleeptime)
             
     
     def getSearchArtistURL(self, artist):
@@ -107,7 +109,7 @@ class dbArtistsDiscogs(dbArtistsBase):
         return url
     
         
-    def searchForArtist(self, artist):
+    def searchForArtist(self, artist, force=False):
         print("\n\n===================== Searching For {0} =====================".format(artist))
         url = self.getSearchArtistURL(artist)
         if url is None:
@@ -119,4 +121,4 @@ class dbArtistsDiscogs(dbArtistsBase):
             print("Error downloading {0}".format(url))
             return False
 
-        self.parseSearchArtist(artist, data)
+        self.parseSearchArtist(artist, data, force)

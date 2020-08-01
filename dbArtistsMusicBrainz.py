@@ -40,7 +40,7 @@ class dbArtistsMusicBrainz(dbArtistsBase):
     ##################################################################################################################
     # Search Functions
     ##################################################################################################################
-    def parseSearchArtist(self, artist, data):
+    def parseSearchArtist(self, artist, data, force=False):
         if data is None:
             return None
         
@@ -68,7 +68,10 @@ class dbArtistsMusicBrainz(dbArtistsBase):
             print("Found {0} artists".format(len(artistDB)))
                 
         iArtist = 0
+        iDown   = 0
         for href, hrefData in artistDB.items():
+            if iDown > 20:
+                break
             iArtist += 1
 
             discID   = self.dutils.getArtistID(href)
@@ -87,9 +90,11 @@ class dbArtistsMusicBrainz(dbArtistsBase):
             print(iArtist,'/',len(artistDB),'\t:',discID,'\t',url)
             
             if isFile(savename):
-                continue
+                if force is False:
+                    continue
 
-            self.downloadArtistURL(url, savename)
+            iDown += 1
+            self.downloadArtistURL(url, savename, force=force)
             
     
     def getSearchArtistURL(self, artist):
@@ -99,7 +104,7 @@ class dbArtistsMusicBrainz(dbArtistsBase):
         return url
     
         
-    def searchForArtist(self, artist):
+    def searchForArtist(self, artist, force=False):
         print("\n\n===================== Searching For {0} =====================".format(artist))
         url = self.getSearchArtistURL(artist)
         if url is None:
@@ -111,4 +116,4 @@ class dbArtistsMusicBrainz(dbArtistsBase):
             print("Error downloading {0}".format(url))
             return False
 
-        self.parseSearchArtist(artist, data)
+        self.parseSearchArtist(artist, data, force)

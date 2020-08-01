@@ -5,7 +5,7 @@ from discogsUtils import datpiffUtils
 import urllib
 from urllib.parse import quote
 from webUtils import getHTML
-from fsUtils import isFile, setDir, setFile
+from fsUtils import isFile, setDir, setFile, isDir
 from hashlib import md5
 from ioUtils import saveFile, getFile
 from searchUtils import findExt  
@@ -26,9 +26,14 @@ class dbArtistsDatPiff(dbArtistsBase):
         self.debug  = debug
         
         ## MultiArtist
-        self.mulArts  = multiartist()         
+        self.mulArts  = multiartist()
         
+        if not isDir(self.disc.getArtistsDir()):
+            raise ValueError("Could not find artist dir for DatPiff")
         self.knownDir  = setDir(self.disc.getArtistsDir(), "known")
+        if not isDir(self.knownDir):
+            print("Make sure that Piggy is loaded!!!")
+            raise ValueError("Could not find known [{0}] dir for DatPiff".format(self.knownDir))
         self.knownFile = setFile(self.knownDir, "datPiffKnown.p")
         if not isFile(self.knownFile):
             raise ValueError("Known File [{0}] does not exist".format(self.knownFile))
