@@ -49,32 +49,33 @@ class parseDBArtistsData:
 
 
     def parse(self, db, nProcs=8, modVals=range(100), force=False):
+        print("Parsing {0} with {1} processes using [{2}] mod values.".format(db, nProcs, modVals))
         pool = Pool(processes=nProcs)
         if db == "Discogs":
-            result = pool.map_async(self.parseArtistsDC, modVals)
+            result = pool.map_async(self.parseArtistsDC, modVals, force)
         elif db == "AllMusic":
-            result = pool.map_async(self.parseArtistsAM, range(100))
+            result = pool.map_async(self.parseArtistsAM, modVals, force)
         elif db == "MusicBrainz":
-            result = pool.map_async(self.parseArtistsMB, range(100))
+            result = pool.map_async(self.parseArtistsMB, modVals, force)
         elif db == "AceBootlegs":
-            result = pool.map_async(self.parseArtistsAB, [None])
+            result = pool.map_async(self.parseArtistsAB, [None], force)
         elif db == "DatPiff":
-            result = pool.map_async(self.parseArtistsDP, [None])
+            result = pool.map_async(self.parseArtistsDP, [None], force)
         elif db == "RateYourMusic":
             dbdata["RateYourMusic"]["Artists"].parseDownloadedFiles()
-            result = pool.map_async(self.parseArtistsRM, range(100))
+            result = pool.map_async(self.parseArtistsRM, modVals, force)
         elif db == "LastFM":
-            result = pool.map_async(self.parseArtistsLM, range(100))
+            result = pool.map_async(self.parseArtistsLM, modVals, force)
         elif db == "RockCorner":
-            result = pool.map_async(self.parseArtistsRC, range(100))
+            result = pool.map_async(self.parseArtistsRC, modVals, force)
         elif db == "CDandLP":
-            result = pool.map_async(self.parseArtistsCL, range(100))
+            result = pool.map_async(self.parseArtistsCL, modVals, force)
             #result = pool.map_async(parseArtistsCL, range(56,72))
             #result = pool.map_async(parseArtistsCL, [55,25,26])
         elif db == "MusicStack":
-            result = pool.map_async(self.parseArtistsMS, [None])
+            result = pool.map_async(self.parseArtistsMS, [None], force)
         elif db == "MetalStorm":
-            result = pool.map_async(self.parseArtistsMT, range(100))
+            result = pool.map_async(self.parseArtistsMT, modVals, force)
         else:
             raise ValueError("[{0}] is not recognized as a DB".format(db))
 
