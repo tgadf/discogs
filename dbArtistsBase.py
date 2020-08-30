@@ -261,7 +261,7 @@ class dbArtistsBase():
         ### Check for recent files
         if isFile(dbname):
             lastModified = datetime.fromtimestamp(path.getmtime(dbname))
-            now    = datetime.now()
+            now    = datetime.now()            
             if force is False:
                 numRecent = [ifile for ifile in files if datetime.fromtimestamp(path.getmtime(ifile)) > lastModified]
                 numNew    = [ifile for ifile in files if (now-datetime.fromtimestamp(path.getmtime(ifile))).days < 1]
@@ -290,7 +290,7 @@ class dbArtistsBase():
             artistID = getBaseFilename(ifile)
             isKnown  = dbdata.get(artistID)
             recent   = datetime.fromtimestamp(path.getctime(ifile))
-            if isKnown is None or recent > lastModified:
+            if isKnown is None or recent > lastModified or force is True:
                 saveIt += 1
                 info   = artistInfo.getData(ifile)
                 
