@@ -5,7 +5,11 @@ from discogsUtils import lastfmUtils
 import urllib
 from urllib.parse import quote
 from webUtils import getHTML
-from fsUtils import isFile
+from fsUtils import isFile, setFile
+from multiArtist import multiartist
+from ioUtils import getFile
+from time import sleep
+
 
 
 ##################################################################################################################
@@ -136,7 +140,7 @@ class dbArtistsLastFM(dbArtistsBase):
     ##################################################################################################################
     # Extra Data
     ##################################################################################################################
-    def assertDBModValExtraData(self, modVal, maxPages=None):
+    def assertDBModValExtraData(self, modVal, maxPages=None, test=True):
         mulArts             = multiartist()        
         
         print("assertDBModValExtraData(",modVal,")")
@@ -161,6 +165,10 @@ class dbArtistsLastFM(dbArtistsBase):
                     url      = self.getArtistURL(artistRef, p)
                     savename = self.getArtistSavename(artistID, p)
                     print(artistID,'\t',url,'\t',savename)
+                    if test is True:
+                        print("\t\tWill download: {0}".format(url))
+                        print("\t\tJust testing... Will not download anything.")
+                        continue
                     if not isFile(savename):
-                        self.downloadArtistURL(url=url, savename=savename, force=True, debug=True)
+                        self.downloadArtistURL(url=url, savename=savename, force=True)
                         sleep(3)

@@ -51,6 +51,10 @@ class parseDBArtistsData:
         return
         #artsMT.parseArtistModValFiles(modVal, force=self.force)
 
+        
+    def parseMetadata(self, db, nProcs=5, modVals=range(100), force=None):
+        print("Parsing {0} with {1} processes using [{2}] mod values.".format(db, nProcs, modVals))
+        self.dbdata[db]["Artists"].parseArtistMetadataFiles()
 
     def parse(self, db, nProcs=8, modVals=range(100), force=None):
         if force is not None:

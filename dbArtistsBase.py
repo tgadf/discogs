@@ -325,7 +325,17 @@ class dbArtistsBase():
             saveIt = self.parseArtistModValFiles(modVal, force=force, debug=debug)
             totalSaves += saveIt
             
-        print("Saved {0} new artist IDs".format(totalSaves))      
+        print("Saved {0} new artist IDs".format(totalSaves)) 
+
+    def parseArtistMetadataFiles(self, debug=False):   
+        artistDBDir = self.disc.getArtistsDBDir()   
+        maxModVal   = self.disc.getMaxModVal()
+        for modVal in range(maxModVal):
+            savename = setFile(artistDBDir, "{0}-DB.p".format(modVal))     
+            dbdata   = getFile(savename)
+            self.createArtistModValMetadata(modVal=modVal, db=dbdata, debug=debug)
+            self.createArtistAlbumModValMetadata(modVal=modVal, db=dbdata, debug=debug)
+                 
         
         
     
