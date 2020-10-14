@@ -28,6 +28,7 @@ class dbArtistsDatPiff(dbArtistsBase):
         ## MultiArtist
         self.mulArts  = multiartist()
         
+        print("DatPiff ArtistsDir: {0}".format(self.disc.getArtistsDir()))
         if not isDir(self.disc.getArtistsDir()):
             raise ValueError("Could not find artist dir for DatPiff")
         self.knownDir  = setDir(self.disc.getArtistsDir(), "known")

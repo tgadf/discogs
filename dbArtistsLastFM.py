@@ -140,7 +140,11 @@ class dbArtistsLastFM(dbArtistsBase):
     ##################################################################################################################
     # Extra Data
     ##################################################################################################################
-    def assertDBModValExtraData(self, modVal, maxPages=None, test=True):
+    def artistIgnoreList(self):
+        ignores = ["Downloads", "Various Artists"]
+        return ignores
+        
+    def assertDBModValExtraData(self, modVal, maxPages=None, allowMulti=False, test=True):
         mulArts             = multiartist()        
         
         print("assertDBModValExtraData(",modVal,")")
@@ -159,12 +163,19 @@ class dbArtistsLastFM(dbArtistsBase):
                 print(artistID,'\t',artistData.artist.name)
                 multiValues = mulArts.getArtistNames(artistData.artist.name)
                 if len(multiValues) > 1:
-                    print("\tNot downloading multis: {0}".format(multiValues.keys()))
+                    if allowMulti is False:
+                        print("\tNot downloading multis: {0}".format(multiValues.keys()))
+                        continue
+                
+                if sum([x == artistData.artist.name for x in self.artistIgnoreList()]) > 0:
+                    print("Hi {0}".format(artistData.artist.name))
                     continue
+                    
                 for p in range(2, npages+1):
                     url      = self.getArtistURL(artistRef, p)
                     savename = self.getArtistSavename(artistID, p)
                     print(artistID,'\t',url,'\t',savename)
+                    print("\t---> {0} / {1}".format(p, npages))
                     if test is True:
                         print("\t\tWill download: {0}".format(url))
                         print("\t\tJust testing... Will not download anything.")

@@ -200,7 +200,8 @@ class dbArtistsBase():
             if force is True:
                 if j % 500 == 0:
                     print("\tProcessed {0}/{1} files.".format(j,len(files)))
-                    
+            if debug:
+                print("{0}/{1} -- {2}.".format(j,len(files),ifile))
             
             info     = artistInfo.getData(ifile)
             artistID = info.ID.ID

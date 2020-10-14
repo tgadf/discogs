@@ -7,18 +7,45 @@ class parseDBArtistsData:
         self.dbdata = maindb.dbdata
         self.force = force
 
+
+        
+    ####################################################################################################
+    ## Discogs
+    ####################################################################################################
+    def parseArtistsDC(self, modVal, primary=True, extra=True):
+        if primary is True:
+            self.dbdata["Discogs"]["Artists"].parseArtistModValFiles(modVal, force=self.force)
+        if extra is True:
+            self.dbdata["Discogs"]["Artists"].parseArtistModValExtraFiles(modVal, force=False)
+
+        
+    ####################################################################################################
+    ## AllMusic
+    ####################################################################################################
     def parseArtistsAM(self, modVal):
         self.dbdata["AllMusic"]["Artists"].parseArtistModValFiles(modVal, force=self.force)
-        #artsAM.parseArtistModValFiles(modVal, force=self.force)
 
-    def parseArtistsDC(self, modVal):
-        self.dbdata["Discogs"]["Artists"].parseArtistModValFiles(modVal, force=self.force)
-        #artsDC.parseArtistModValFiles(modVal, force=self.force)
-
+        
+    ####################################################################################################
+    ## MusicBrainz
+    ####################################################################################################
     def parseArtistsMB(self, modVal):
         self.dbdata["MusicBrainz"]["Artists"].parseArtistModValFiles(modVal, force=self.force)
-        #artsMB.parseArtistModValFiles(modVal, force=self.force)
 
+        
+    ####################################################################################################
+    ## Last FM
+    ####################################################################################################
+    def parseArtistsLM(self, modVal, primary=True, extra=True):
+        if primary is True:
+            self.dbdata["LastFM"]["Artists"].parseArtistModValFiles(modVal, force=self.force)
+        if extra is True:
+            self.dbdata["LastFM"]["Artists"].parseArtistModValExtraFiles(modVal, force=False)
+            
+
+    ####################################################################################################
+    ## Others
+    ####################################################################################################
     def parseArtistsAB(self, modVal):
         return
         #artsAB.parseArtistFiles(force=self.force)
@@ -30,10 +57,7 @@ class parseDBArtistsData:
     def parseArtistsRM(self, modVal):
         self.dbdata["RateYourMusic"]["Artists"].parseArtistModValFiles(modVal, force=self.force)
         #artsRM.parseArtistModValFiles(modVal, force=self.force)
-
-    def parseArtistsLM(self, modVal):
-        self.dbdata["LastFM"]["Artists"].parseArtistModValFiles(modVal, force=self.force)
-        #artsLM.parseArtistModValFiles(modVal, force=self.force)
+            
 
     def parseArtistsRC(self, modVal):
         self.dbdata["RockCorner"]["Artists"].parseArtistModValFiles(modVal, force=self.force)

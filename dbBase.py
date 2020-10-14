@@ -16,19 +16,10 @@ class dbBase():
         print("="*25,"  {0}  ".format(db),"="*25)
         self.base       = db
         self.debug      = debug
-        self.localpath  = setDir("/Users/tgadfort/Music", "Discog", forceExist=False)
-        self.savepath   = setDir("/Volumes/Piggy", "Discog", forceExist=False)
+        self.dbsavepath   = setDir("/Users/tgadfort/Music", "Discog", forceExist=False)
+        self.metasavepath = setDir("/Users/tgadfort/Music", "Discog", forceExist=False)
+        self.rawsavepath  = setDir("/Volumes/Piggy", "Discog", forceExist=False)
                 
-        if self.debug:
-            print("Local Path: {0}".format(self.localpath))
-            print("Save Path:  {0}".format(self.savepath))
-        if not isDir(self.localpath):
-            raise ValueError("Local Path [{0}] is not available!".format(self.localpath))
-        if not isDir(self.savepath):
-            if self.debug:
-                print("Save Path is not available! Setting it to local path...")
-            self.savepath = self.localpath
-
         self.maxModVal  = 100
                 
         self.createDirectories()
@@ -45,12 +36,15 @@ class dbBase():
         
     def getModValList(self, debug=False):
         return list(range(0, self.maxModVal))
-        
-    def getLocalDir(self, debug=False):
-        return self.localpath
     
-    def getSaveDir(self, debug=False):
-        return self.savepath        
+    def getRawSaveDir(self, debug=False):
+        return self.rawsavepath
+        
+    def getMetaSaveDir(self, debug=False):
+        return self.metasavepath
+        
+    def getDBSaveDir(self, debug=False):
+        return self.dbsavepath      
         
         
     def createDirnameDirectories(self, savedir, dirnames):
@@ -66,32 +60,23 @@ class dbBase():
                     
         
     def createDirectories(self):
-        if not isDir(self.getSaveDir()):
-            print("Warning! Saved Discog Directory {0} is not Available".format(self.getSaveDir()))
-            self.savepath = None
-        else:
-            if self.debug:
-                print("Saved Discog Directory {0} is Available".format(self.getSaveDir()))
-            
-        if not isDir(self.getLocalDir()):
-            print("Warning! Local Discog Directory {0} is not Available".format(self.getLocalDir()))
-            self.localpath = None
-        else:
-            if self.savepath is None:
-                self.savepath = self.getLocalDir()
-            if self.debug:
-                print("Local Discog Directory {0} is Available".format(self.getLocalDir()))
+        print("Directory Information:")
+        print("  Raw:  {0}".format(self.getRawSaveDir()))
+        print("  Meta: {0}".format(self.getMetaSaveDir()))
+        print("  DB:   {0}".format(self.getDBSaveDir()))
         
         
         ########################################################################
         # Regular Database Directories
         ########################################################################
-        dirnames    = []
+        rawdirnames  = []
+        metadirnames = []
         names = ["artists", "albums"]
-        dirnames += ["{0}-{1}".format(x, self.base) for x in names]
-        dirnames += ["{0}-{1}-db".format(x, self.base) for x in names]
-        dirnames += ["{0}-{1}-db/metadata".format(x, self.base) for x in names]
-        self.dirnames = self.createDirnameDirectories(self.getSaveDir(), dirnames)
+        rawdirnames  += ["{0}-{1}".format(x, self.base) for x in names]
+        metadirnames += ["{0}-{1}-db".format(x, self.base) for x in names]
+        metadirnames += ["{0}-{1}-db/metadata".format(x, self.base) for x in names]
+        self.rawdirnames  = self.createDirnameDirectories(self.getRawSaveDir(), rawdirnames)
+        self.metadirnames = self.createDirnameDirectories(self.getMetaSaveDir(), metadirnames)
         
 
         ########################################################################
@@ -101,8 +86,7 @@ class dbBase():
         names = ["diagnostic"]
         dbdirnames += ["{0}-{1}".format(x, self.base) for x in names]  
         dbdirnames += ["db-{0}".format(self.base)]
-        self.dbdirnames = self.createDirnameDirectories(self.getLocalDir(), dbdirnames)
-                    
+        self.dbdirnames = self.createDirnameDirectories(self.getDBSaveDir(), dbdirnames)
 
                     
     
@@ -164,29 +148,29 @@ class dbBase():
     ###############################################################################
     def getArtistsDir(self, debug=False):
         key = "artists-{0}".format(self.base)
-        if self.dirnames.get(key) is not None:
-            return self.dirnames[key]
+        if self.rawdirnames.get(key) is not None:
+            return self.rawdirnames[key]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
 
     def getArtistsExtraDir(self, debug=False):
         key = "artists-extra-{0}".format(self.base)
-        if self.dirnames.get(key) is not None:
-            return self.dirnames[key]
+        if self.rawdirnames.get(key) is not None:
+            return self.rawdirnames[key]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
 
     def getArtistsDBDir(self, debug=False):
         key = "artists-{0}-db".format(self.base)
-        if self.dirnames.get(key) is not None:
-            return self.dirnames[key]
+        if self.metadirnames.get(key) is not None:
+            return self.metadirnames[key]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
     
     def getArtistsMetadataDBDir(self, debug=False):
         key = "artists-{0}-db/metadata".format(self.base)
-        if self.dirnames.get(key) is not None:
-            return self.dirnames[key]
+        if self.metadirnames.get(key) is not None:
+            return self.metadirnames[key]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
     
@@ -219,22 +203,22 @@ class dbBase():
     ###############################################################################
     def getAlbumsDir(self, debug=False):
         key = "albums-{0}".format(self.base)
-        if self.dirnames.get(key) is not None:
-            return self.dirnames[key]
+        if self.rawdirnames.get(key) is not None:
+            return self.rawdirnames[key]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
 
     def getAlbumsDBDir(self, debug=False):
         key = "albums-{0}-db".format(self.base)
-        if self.dirnames.get(key) is not None:
-            return self.dirnames[key]
+        if self.metadirnames.get(key) is not None:
+            return self.metadirnames[key]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
     
     def getAlbumsMetadataDBDir(self, debug=False):
         key = "albums-{0}-db/metadata".format(self.base)
-        if self.dirnames.get(key) is not None:
-            return self.dirnames[key]
+        if self.metadirnames.get(key) is not None:
+            return self.metadirnames[key]
         else:
             raise ValueError("Base is illegal: {0}".format(self.base))
     
@@ -280,9 +264,6 @@ class dbBase():
 
     def getArtistsSpecialDir(self, debug=False):
         return self.dirnames["artist-special"]
-
-    def getMusicDir(self, debug=False):
-        return self.localpath
     
     
     ##################################  Helper ######################################

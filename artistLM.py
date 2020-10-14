@@ -146,7 +146,8 @@ class artistLM(dbBase):
         self.dutils = lastfmUtils()
         
     def getData(self, inputdata, debug=False):
-        if debug:
+        self.debug = debug
+        if self.debug:
             print(inputdata)
             
         if isinstance(inputdata, str):
@@ -217,6 +218,9 @@ class artistLM(dbBase):
     def getartistLMDiscID(self, artist):
         name     = artist.name
         artistID = self.dutils.getArtistID(name)
+        if artistID is None:
+            aic = artistLMIDClass(err="NoArtistID")
+            return aic            
         aic = artistLMIDClass(ID=artistID)
         return aic
     
@@ -225,7 +229,7 @@ class artistLM(dbBase):
     #######################################################################################################################################
     ## Artist Name
     #######################################################################################################################################
-    def getartistLMName(self):        
+    def getartistLMName(self):
         try:
             artistdiv  = self.bsdata.find("div", {"id": "tlmdata"})
             artistdata = artistdiv.attrs['data-tealium-data']
@@ -272,6 +276,8 @@ class artistLM(dbBase):
     
     
     def getartistLMMedia(self, artist):
+        if self.debug:
+            print("\tFinding ArtistLM Media")
         amc  = artistLMMediaClass()
         name = "Albums"
         amc.media[name] = []
@@ -280,18 +286,27 @@ class artistLM(dbBase):
 
         albumsection = self.bsdata.find("section", {"id": "artist-albums-section"})
         if albumsection is None:
+            if self.debug:
+                print("\t\tNo Album Section!")
             amc.media[mediaType] = []
             return amc
 
             
             
             raise ValueError("Cannot find album section!")
-        ols = albumsection.findAll("ol", {"class": "buffer-standard resource-list--release-list resource-list--release-list--with-20"})
+            
+        
+            
+        ols = albumsection.findAll("ol", {"class": "buffer-standard"}) # resource-list--release-list resource-list--release-list--with-20"})
+        if self.debug:
+            print("\t\tFound {0} Resource Lists".format(len(ols)))
         for ol in ols:
             lis = ol.findAll("li", {"class": "resource-list--release-list-item-wrap"})
             for il, li in enumerate(lis):
                 h3 = li.find("h3", {"class": "resource-list--release-list-item-name"})
                 if h3 is None:
+                    if self.debug:
+                        print("\t\tNo <h3> in artist list section ({0}/{1}): {2}".format(il,len(lis), li))
                     continue
                     raise ValueError("No <h3> in artist list section ({0}/{1}): {2}".format(il,len(lis), li))
                 linkdata = self.getNamesAndURLs(h3)
@@ -329,6 +344,8 @@ class artistLM(dbBase):
                 if amc.media.get(mediaType) is None:
                     amc.media[mediaType] = []
                 amc.media[mediaType].append(amdc)
+                if self.debug:
+                    print("\t\tAdding Media ({0} -- {1})".format(album, url))
 
         return amc
     
@@ -392,7 +409,9 @@ class artistLM(dbBase):
         artistdiv  = self.bsdata.find("div", {"id": "tlmdata"})
         if artistdiv is not None:
             artistdata = artistdiv.attrs['data-tealium-data']
-
+        else:
+            artistdata = None
+    
         if artistdata is not None:
             try:
                 artistvals = json.loads(artistdata)
@@ -400,8 +419,13 @@ class artistLM(dbBase):
             except:
                 genres     = None
 
-        if genres is not None:
-            genres = genres.split(",")
+            if genres is not None:
+                genres = genres.split(",")
+            else:
+                genres = None
+        else:
+            genres = None
+        
        
         data["Profile"] = {'genre': genres, 'style': None}
                
@@ -427,7 +451,12 @@ class artistLM(dbBase):
 
         if len(lis) > 1:
             lastPage = self.getNamesAndURLs(lis[-1])
-            tot = lastPage[0].name
+            try:
+                tot = lastPage[0].name
+            except:
+                tot = None
+                #raise ValueError("Error getting last page from {0}".format(lastPage))
+                
             try:
                 tot = int(tot)
                 apc   = artistLMPageClass(ppp=ppp, tot=tot, redo=False, more=True)

@@ -58,8 +58,8 @@ class mainDB:
         dbArtists = dbArtistsRockCorner()
         dbdata[dbArtists.db] = [dbArtists.disc, dbArtists, dbArtists.artist, dbArtists.dutils]
 
-        dbArtists = dbArtistsDatPiff()
-        dbdata[dbArtists.db] = [dbArtists.disc, dbArtists, dbArtists.artist, dbArtists.dutils]
+        #dbArtists = dbArtistsDatPiff()
+        #dbdata[dbArtists.db] = [dbArtists.disc, dbArtists, dbArtists.artist, dbArtists.dutils]
 
         dbArtists = dbArtistsAceBootlegs()
         dbdata[dbArtists.db] = [dbArtists.disc, dbArtists, dbArtists.artist, dbArtists.dutils]
@@ -75,6 +75,8 @@ class mainDB:
 
 
         keys   = ["Disc", "Artists", "Artist", "Utils"]
+        if self.debug:
+            print("Database Records:")
         for db in dbdata.keys():
             if self.debug:
                 print("  Creating Database Records for {0}".format(db))

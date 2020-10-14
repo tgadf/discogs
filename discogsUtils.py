@@ -169,7 +169,8 @@ class lastfmUtils:
     
         
     def getArtistID(self, name, debug=False):
-        
+        if name is None:
+            return None
         m = md5()
         for val in name.split(" "):
             m.update(val.encode('utf-8'))
