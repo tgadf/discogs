@@ -15,8 +15,8 @@ class parseDBArtistsData:
     def parseArtistsDC(self, modVal, primary=True, extra=True):
         if primary is True:
             self.dbdata["Discogs"]["Artists"].parseArtistModValFiles(modVal, force=self.force)
-        if extra is True:
-            self.dbdata["Discogs"]["Artists"].parseArtistModValExtraFiles(modVal, force=False)
+        #if extra is True:
+        #    self.dbdata["Discogs"]["Artists"].parseArtistModValExtraFiles(modVal, force=False)
 
         
     ####################################################################################################

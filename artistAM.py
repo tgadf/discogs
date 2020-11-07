@@ -131,6 +131,20 @@ class artistAMDataClass:
         self.mediaCounts = mediaCounts
         self.err         = err
         
+        
+    def show(self):
+        print("AllMusic Artist Data Class")
+        print("-------------------------")
+        print("Artist: {0}".format(self.artist.name))
+        print("URL:    {0}".format(self.url.url))
+        print("ID:     {0}".format(self.ID.ID))
+        print("Pages:  {0}".format(self.pages.get()))
+        print("Media:  {0}".format(self.mediaCounts.get()))
+        for mediaType,mediaTypeAlbums in self.media.media.items():
+            print("   {0}".format(mediaType))
+            for album in mediaTypeAlbums:
+                print("      {0}".format(album.album))     
+        
     def get(self):
         return self.__dict__
 

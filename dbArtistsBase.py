@@ -158,14 +158,21 @@ class dbArtistsBase():
     ################################################################################
     # Parse Artist Data
     ################################################################################
+    def getArtistNumAlbums(self, artistData):
+        numAlbums = sum([len(x) for x in artistData.media.media.values()])
+        return numAlbums
+    
+    
     def parseArtistFile(ifile):
         bsdata     = getHTML(get(ifile))
         artistData = self.parse(bsdata) 
         return artistData
     
     
-    def parseArtistModValExtraFiles(self, modVal, debug=False, force=False):
-        print("Parsing Artist Extra Files For ModVal {0}".format(modVal))
+    
+    def parseArtistModValExtraFiles(self, modVal, dbdata=None, debug=False, force=False):
+        print("\t","="*100)
+        print("\t","Parsing Artist Extra Files For ModVal {0}".format(modVal))
         artistInfo = self.artist
 
         artistDir = self.disc.getArtistsDir()
@@ -178,18 +185,22 @@ class dbArtistsBase():
         files  = findExt(dirVal, ext='.p')
         
         if len(files) == 0:
-            return
-        print("  Found {0} extra files for ModVal {1}".format(len(files), modVal))
+            return dbdata
+        print("\t","  Found {0} extra files for ModVal {1}".format(len(files), modVal))
 
         dbname = setFile(artistDBDir, "{0}-DB.p".format(modVal))
-        
+        retdbdata = False
+
         if force is False:
-            print("  Loaded ", end="")
-            dbdata = getFile(dbname, version=3)
-            print("{0} artist IDs.".format(len(dbdata)))
+            if dbdata is None:
+                print("\t","  Loaded ", end="")
+                dbdata = getFile(dbname, version=3)
+                print("\t","{0} artist IDs.".format(len(dbdata)))
+            else:
+                retdbdata = True
         else:
-            print("Forcing Reloads of ModVal={0}".format(modVal))
-            print("  Processing {0} files.".format(len(files)))
+            print("\t","Forcing Reloads of ModVal={0}".format(modVal))
+            print("\t","  Processing {0} files.".format(len(files)))
             dbdata = {}
 
         saveIt = 0
@@ -199,9 +210,9 @@ class dbArtistsBase():
         for j,ifile in enumerate(files):
             if force is True:
                 if j % 500 == 0:
-                    print("\tProcessed {0}/{1} files.".format(j,len(files)))
+                    print("\t","\tProcessed {0}/{1} files.".format(j,len(files)))
             if debug:
-                print("{0}/{1} -- {2}.".format(j,len(files),ifile))
+                print("\t","{0}/{1} -- {2}.".format(j,len(files),ifile))
             
             info     = artistInfo.getData(ifile)
             artistID = info.ID.ID
@@ -226,12 +237,20 @@ class dbArtistsBase():
                 dbdata[artistID].media.media[k] = list(Tretval.values())
                 
             if debug:
-                print("File:",j," \tArtist:",artistID,'-->',currentMedia,'to',sum([len(x) for x in dbdata[artistID].media.media.values()]))
-            
-            
+                print("\t","File:",j," \tArtist:",artistID,'-->',currentMedia,'to',sum([len(x) for x in dbdata[artistID].media.media.values()]))
+
+                
+        if retdbdata is True:
+            return dbdata
+        #if saveAll is False:
+        #    return saveIt
+                
+                
         if saveIt > 0:
             savename = setFile(artistDBDir, "{0}-DB.p".format(modVal))     
-            print("Saving {0} new artist media to {1}".format(saveIt, savename))
+            print("\t","Saving {0} new (extra) artist media to {1}".format(saveIt, savename))
+            dbNumAlbums = sum([self.getArtistNumAlbums(artistData) for artistData in dbdata.values()])
+            print("\t","Saving {0} total (extra) artist media".format(dbNumAlbums))
             saveFile(idata=dbdata, ifile=savename)
             
             self.createArtistModValMetadata(modVal=modVal, db=dbdata, debug=debug)
@@ -245,6 +264,7 @@ class dbArtistsBase():
         from os import path
         from datetime import datetime, timedelta
 
+        print("-"*100)
         print("Parsing Artist Files For ModVal {0}".format(modVal))
         artistInfo = self.artist
 
@@ -308,9 +328,20 @@ class dbArtistsBase():
                 
                 dbdata[artistID] = info
 
+               
+        forceSave = False
         if saveIt > 0:
+            print("\tCalling Extra Parsing")
+            dbdata = self.parseArtistModValExtraFiles(modVal, dbdata=dbdata, force=force, debug=debug)
+            forceSave = True
+            saveIt = len(dbdata)
+        
+
+        if saveIt > 0 or forceSave is True:
             savename = setFile(artistDBDir, "{0}-DB.p".format(modVal))     
             print("Saving {0} new artist IDs to {1}".format(saveIt, savename))
+            dbNumAlbums = sum([self.getArtistNumAlbums(artistData) for artistData in dbdata.values()])
+            print("Saving {0} total artist media".format(dbNumAlbums))
             saveFile(idata=dbdata, ifile=savename)
             
             self.createArtistModValMetadata(modVal=modVal, db=dbdata, debug=debug)
