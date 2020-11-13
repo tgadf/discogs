@@ -60,10 +60,11 @@ class dbBase():
                     
         
     def createDirectories(self):
-        print("Directory Information:")
-        print("  Raw:  {0}".format(self.getRawSaveDir()))
-        print("  Meta: {0}".format(self.getMetaSaveDir()))
-        print("  DB:   {0}".format(self.getDBSaveDir()))
+        if self.debug:
+            print("Directory Information:")
+            print("  Raw:  {0}".format(self.getRawSaveDir()))
+            print("  Meta: {0}".format(self.getMetaSaveDir()))
+            print("  DB:   {0}".format(self.getDBSaveDir()))
         
         
         ########################################################################

@@ -1,4 +1,5 @@
 from masterdb import masterdb
+from dbArtistMap import dbArtistMap
 from pandas import concat
 from dbArtistsDiscogs import dbArtistsDiscogs
 from dbArtistsAllMusic import dbArtistsAllMusic
@@ -17,7 +18,7 @@ from dbArtistsMusicStack import dbArtistsMusicStack
 
 class mainDB:
     def __init__(self, mdb=None, create=False, debug=False):
-        self.mdb    = mdb
+        self.mdb    = None
         self.create = create
         self.debug  = debug
 
@@ -27,7 +28,8 @@ class mainDB:
         self.slimArtistAlbumsDB      = {}
         self.knownSlimArtistAlbumsDB = {}
         
-        self.dbdata = {}
+        self.dbdata    = {}
+        self.dbdatamap = {}
 
         self.setDBBasic()
         #self.setDBs()
@@ -35,8 +37,12 @@ class mainDB:
         
     def getDBs(self):
         return self.dbdata.keys()
-        
-        
+    
+    
+    def loadDBDataMap(self):    
+        self.dbdatamap = {db: dbArtistMap(db) for db in self.getDBs()}
+
+
     def setDBBasic(self):
         if self.debug:
             print("Setting Basic Database Objects")
@@ -86,7 +92,8 @@ class mainDB:
         if self.debug:
             print("Available DBs: {0}".format(", ".join(self.dbdata.keys())))
         
-        
+            
+
         
     #################################
     # Known DB Data

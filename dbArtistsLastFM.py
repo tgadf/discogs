@@ -141,7 +141,13 @@ class dbArtistsLastFM(dbArtistsBase):
     # Extra Data
     ##################################################################################################################
     def artistIgnoreList(self):
-        ignores = ["Downloads", "Various Artists"]
+        ignores  = ["Downloads", "Various Artists"]
+        ignores += ["Glee", "Disney", "Sesame Street", "Nashville Cast"]
+        ignores += ["Various Artists", "Vários intérpretes", "Various Interprets"]
+        ignores += ["original score", "Downloads", "Glee Cast", "Sound Ideas", "Rain Sounds"]
+        ignores += ["101 Strings", "TBS RADIO 954kHz", "Armin van Buuren ASOT Radio", "Piano Tribute Players"]
+        ignores += ["Yoga Music", "GTA San Andreas"]
+
         return ignores
         
     def assertDBModValExtraData(self, modVal, maxPages=None, allowMulti=False, test=True):
@@ -151,7 +157,9 @@ class dbArtistsLastFM(dbArtistsBase):
         artistDBDir = self.disc.getArtistsDBDir()
         dbname  = setFile(artistDBDir, "{0}-DB.p".format(modVal))     
         dbdata  = getFile(dbname)
-        nerrs = 0
+        nerrs   = 0
+        ignores = self.artistIgnoreList()
+
         
         for artistID,artistData in dbdata.items():
             pages = artistData.pages
@@ -161,6 +169,11 @@ class dbArtistsLastFM(dbArtistsBase):
                     npages = min([npages, maxPages])
                 artistRef = artistData.url.url
                 print(artistID,'\t',artistData.artist.name)
+                if artistData.artist.name in ignores:
+                    print("\tNot downloading artist in ignore list: {0}".format(artistData.artist.name))
+                    continue
+                    
+                
                 multiValues = mulArts.getArtistNames(artistData.artist.name)
                 if len(multiValues) > 1:
                     if allowMulti is False:
