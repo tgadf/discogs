@@ -134,6 +134,23 @@ class artistMBDataClass:
         
     def get(self):
         return self.__dict__
+        
+        
+    def show(self):
+        print("MusicBrainz Artist Data Class")
+        print("-------------------------")
+        print("Artist: {0}".format(self.artist.name))
+        print("URL:    {0}".format(self.url.url))
+        print("ID:     {0}".format(self.ID.ID))
+        print("Pages:  {0}".format(self.pages.get()))
+        print("Media:  {0}".format(self.mediaCounts.get()))
+        for mediaType,mediaTypeAlbums in self.media.media.items():
+            print("   {0}".format(mediaType))
+            for album in mediaTypeAlbums:
+                print("      {0}".format(album.album))     
+        
+    def get(self):
+        return self.__dict__
 
 
         
@@ -429,49 +446,22 @@ class artistMB(dbBase):
         from numpy import ceil
         bsdata = self.bsdata
 
-    
-        apc   = artistMBPageClass(ppp=1, tot=1, redo=False, more=False)
-        return apc
-            
-        pageData = bsdata.find("div", {"class": "pagination bottom"})
-        if pageData is None:
-            err = "pagination bottom"
-            apc = artistMBPageClass(err=err)
-            return apc
-        else:
-            x = pageData.find("strong", {"class": "pagination_total"})
-            if x is None:
-                err = "pagination_total"
-                apc = artistMBPageClass(err=err)
-                return apc
-            else:
-                txt = x.text
-                txt = txt.strip()
-                txt = txt.replace("\n", "")
-                retval = [tmp.strip() for tmp in txt.split('of')]
-
+        try:
+            pages  = bsdata.find("ul", {"class": "pagination"})
+            lis    = pages.findAll("li")
+            txts   = [li.text for li in lis]
+            npages = 0
+            for item in txts:
                 try:
-                    ppp   = int(retval[0].split('–')[-1])
-                    tot   = int(retval[1].replace(",", ""))
+                    npages = max([npages, int(item)])
                 except:
-                    err   = "int"
-                    apc   = artistMBPageClass(err=err)
-                    return apc
-
-                if ppp < 500:
-                    if tot < 25 or ppp == tot:
-                        apc   = artistMBPageClass(ppp=ppp, tot=tot, redo=False, more=False)
-                    else:
-                        apc   = artistMBPageClass(ppp=ppp, tot=tot, redo=True, more=False)
-                else:
-                    if tot < 500:
-                        apc   = artistMBPageClass(ppp=ppp, tot=tot, redo=False, more=False)
-                    else:
-                        apc   = artistMBPageClass(ppp=ppp, tot=tot, redo=False, more=True)
-                        
-                return apc
+                    continue
+                    
+            apc   = artistMBPageClass(ppp=100, tot=100*npages, redo=False, more=True)
+        except:
+            apc   = artistMBPageClass(ppp=100, tot=1, redo=False, more=False)
             
-        return artistMBPageClass()
+        return apc
 
 
 

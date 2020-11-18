@@ -206,6 +206,7 @@ class dbArtistsBase():
         saveIt = 0
         
         nArtistMedia = {}
+        print("\t","{0} artist IDs.".format(len(dbdata)))
         
         for j,ifile in enumerate(files):
             if force is True:
@@ -260,7 +261,7 @@ class dbArtistsBase():
 
     
     
-    def parseArtistModValFiles(self, modVal, force=False, debug=False):        
+    def parseArtistModValFiles(self, modVal, force=False, debug=False, doExtra=False):        
         from os import path
         from datetime import datetime, timedelta
 
@@ -330,7 +331,7 @@ class dbArtistsBase():
 
                
         forceSave = False
-        if saveIt > 0:
+        if saveIt > 0 and doExtra is True:
             print("\tCalling Extra Parsing")
             dbdata = self.parseArtistModValExtraFiles(modVal, dbdata=dbdata, force=force, debug=debug)
             forceSave = True

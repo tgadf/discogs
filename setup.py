@@ -3,7 +3,7 @@ import setuptools
 
 setup(
   name = 'discogs',
-  py_modules = ['dbBase', 'dbArtistMap', 'discogsUtils', 'masterdb', 'mainDB', 'matchDBArtist'], #, 'artistAB', 'artistAM', 'artistCL', 'artistDC', 'artistDP', 'artistLM', 'artistMB', 'artistMS', 'artistMT', 'artistRC', 'artistRM', 'artistsMT'], #, 'dbArtistsBase', 'dbArtistsDiscogs', 'dbArtistsAllMusic', 'dbArtistsMusicBrainz', 'dbArtistsLastFM', 'dbArtistsRockCorner', 'dbArtistsDatPiff', 'dbArtistsAceBootlegs', 'dbArtistsCDandLP', 'dbArtistsRateYourMusic', 'dbArtistsMusicStack'],
+  py_modules = ['dbBase', 'dbArtistMap', 'discogsUtils', 'masterdb', 'mainDB', 'matchDBArtist', 'masterDBMatchClass'], #, 'artistAB', 'artistAM', 'artistCL', 'artistDC', 'artistDP', 'artistLM', 'artistMB', 'artistMS', 'artistMT', 'artistRC', 'artistRM', 'artistsMT'], #, 'dbArtistsBase', 'dbArtistsDiscogs', 'dbArtistsAllMusic', 'dbArtistsMusicBrainz', 'dbArtistsLastFM', 'dbArtistsRockCorner', 'dbArtistsDatPiff', 'dbArtistsAceBootlegs', 'dbArtistsCDandLP', 'dbArtistsRateYourMusic', 'dbArtistsMusicStack'],
   version = '0.0.1',
   description = 'A Python Wrapper for Discogs Data',
   long_description = open('README.md').read(),

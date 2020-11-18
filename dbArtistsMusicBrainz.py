@@ -5,7 +5,10 @@ from discogsUtils import musicbrainzUtils
 import urllib
 from urllib.parse import quote
 from webUtils import getHTML
-from fsUtils import isFile
+from fsUtils import isFile, setFile
+from multiArtist import multiartist
+from ioUtils import getFile
+from time import sleep
 from hashlib import md5
 
 
@@ -33,6 +36,10 @@ class dbArtistsMusicBrainz(dbArtistsBase):
     def getArtistURL(self, artistRef, page=1):
         baseURL = self.baseURL
         url     = urllib.parse.urljoin(baseURL, artistRef)
+        if isinstance(page, int) and page > 1:
+            pageURL = "?page={0}".format(page)
+            url = "{0}{1}".format(url, pageURL)
+
         return url
 
         
@@ -117,3 +124,54 @@ class dbArtistsMusicBrainz(dbArtistsBase):
             return False
 
         self.parseSearchArtist(artist, data, force)
+                
+        
+    
+    ##################################################################################################################
+    # Extra Data
+    ##################################################################################################################
+    def artistIgnoreList(self):
+        ignores  = ["Downloads", "Various Artists"]
+        ignores += ["Glee", "Disney", "Sesame Street", "Nashville Cast"]
+        ignores += ["Various Artists", "Vários intérpretes", "Various Interprets"]
+        ignores += ["original score", "Downloads", "Glee Cast", "Sound Ideas", "Rain Sounds"]
+        ignores += ["101 Strings", "TBS RADIO 954kHz", "Armin van Buuren ASOT Radio", "Piano Tribute Players"]
+        ignores += ["Yoga Music", "GTA San Andreas"]
+
+        return ignores
+        
+    def assertDBModValExtraData(self, modVal, maxPages=None, test=True):
+        mulArts             = multiartist()        
+        
+        print("assertDBModValExtraData(",modVal,")")
+        artistDBDir = self.disc.getArtistsDBDir()
+        dbname  = setFile(artistDBDir, "{0}-DB.p".format(modVal))     
+        dbdata  = getFile(dbname)
+        nerrs   = 0
+        ignores = self.artistIgnoreList()
+
+        
+        for artistID,artistData in dbdata.items():
+            pages = artistData.pages
+            if pages.more is True:
+                npages = pages.pages
+                if maxPages is not None:
+                    npages = min([npages, maxPages])
+                artistRef = artistData.url.url
+                print(artistID,'\t',artistData.artist.name)
+                if artistData.artist.name in ignores:
+                    print("\tNot downloading artist in ignore list: {0}".format(artistData.artist.name))
+                    continue
+                
+                for p in range(2, npages+1):
+                    url      = self.getArtistURL(artistRef, p)
+                    savename = self.getArtistSavename(artistID, p)
+                    print(artistID,'\t',url,'\t',savename)
+                    print("\t---> {0} / {1}".format(p, npages))
+                    if test is True:
+                        print("\t\tWill download: {0}".format(url))
+                        print("\t\tJust testing... Will not download anything.")
+                        continue
+                    if not isFile(savename):
+                        self.downloadArtistURL(url=url, savename=savename, force=True)
+                        sleep(3)

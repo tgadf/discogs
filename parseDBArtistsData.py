@@ -7,13 +7,15 @@ class parseDBArtistsData:
         self.dbdata = maindb.dbdata
         self.force = force
 
+        self.primary = True
+        self.extra = True
 
         
     ####################################################################################################
     ## Discogs
     ####################################################################################################
-    def parseArtistsDC(self, modVal, primary=True, extra=True):
-        if primary is True:
+    def parseArtistsDC(self, modVal):
+        if self.primary is True:
             self.dbdata["Discogs"]["Artists"].parseArtistModValFiles(modVal, force=self.force)
         #if extra is True:
         #    self.dbdata["Discogs"]["Artists"].parseArtistModValExtraFiles(modVal, force=False)
@@ -30,16 +32,19 @@ class parseDBArtistsData:
     ## MusicBrainz
     ####################################################################################################
     def parseArtistsMB(self, modVal):
-        self.dbdata["MusicBrainz"]["Artists"].parseArtistModValFiles(modVal, force=self.force)
+        if self.primary is True:
+            self.dbdata["MusicBrainz"]["Artists"].parseArtistModValFiles(modVal, force=self.force)
+        if self.extra is True:
+            self.dbdata["MusicBrainz"]["Artists"].parseArtistModValExtraFiles(modVal, force=False)
 
         
     ####################################################################################################
     ## Last FM
     ####################################################################################################
-    def parseArtistsLM(self, modVal, primary=True, extra=True):
-        if primary is True:
+    def parseArtistsLM(self, modVal):
+        if self.primary is True:
             self.dbdata["LastFM"]["Artists"].parseArtistModValFiles(modVal, force=self.force)
-        if extra is True:
+        if self.extra is True:
             self.dbdata["LastFM"]["Artists"].parseArtistModValExtraFiles(modVal, force=False)
             
 
@@ -80,7 +85,9 @@ class parseDBArtistsData:
         print("Parsing {0} with {1} processes using [{2}] mod values.".format(db, nProcs, modVals))
         self.dbdata[db]["Artists"].parseArtistMetadataFiles()
 
-    def parse(self, db, nProcs=8, modVals=range(100), force=None):
+    def parse(self, db, nProcs=8, modVals=range(100), force=None, extra=True):
+        self.primary = not extra
+        self.extra   = extra
         if force is not None:
             self.force = force
         print("Parsing {0} with {1} processes using [{2}] mod values.".format(db, nProcs, modVals))
