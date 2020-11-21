@@ -60,10 +60,10 @@ class dbArtistsBase():
     ###############################################################################
     # Download Information
     ###############################################################################
-    def getArtistURL(self, artistRef, page=1):
+    def getArtistURL(self, artistRef, page=1, credit=False):
         raise ValueError("Override getArtistURL")
     
-    def getArtistSavename(self, discID, page=1):
+    def getArtistSavename(self, discID, page=1, credit=False):
         artistDir = self.disc.getArtistsDir()
         modValue  = self.dutils.getDiscIDHashMod(discID=discID, modval=self.disc.getMaxModVal())
         if modValue is not None:
@@ -71,6 +71,9 @@ class dbArtistsBase():
             if isinstance(page, int) and page > 1:
                 outdir = mkSubDir(outdir, "extra")
                 savename  = setFile(outdir, discID+"-{0}.p".format(page))
+            elif credit is True:
+                outdir = mkSubDir(outdir, "credit")
+                savename  = setFile(outdir, discID+".p")
             else:
                 savename  = setFile(outdir, discID+".p")
                 
@@ -127,8 +130,22 @@ class dbArtistsBase():
             return True
         else:
             return False
-        
-                    
+    
+
+    def downloadArtistCreditURL(self, artistData, debug=False, force=False):
+        artistRef = artistData.url.url
+        artistID  = artistData.ID.ID
+        print("Downloading credit URL for ArtistID {0}".format(artistID))
+
+        url      = self.getArtistURL(artistRef, credtit=True)
+        savename = self.getArtistSavename(artistID, credit=True)
+        if not isFile(savename) or force is True:
+            retval = self.downloadArtistURL(url=url, savename=savename, force=True, debug=True)
+            return retval
+        return False
+            
+    
+
     def downloadArtistExtraURL(self, artistData, debug=False, force=False):
         newPages = 0
         pages = artistData.pages
@@ -167,6 +184,97 @@ class dbArtistsBase():
         bsdata     = getHTML(get(ifile))
         artistData = self.parse(bsdata) 
         return artistData
+    
+    
+    
+    def parseArtistModValCreditFiles(self, modVal, dbdata=None, debug=False, force=False):
+        print("\t","="*100)
+        print("\t","Parsing Artist Credit Files For ModVal {0}".format(modVal))
+        artistInfo = self.artist
+
+        artistDir = self.disc.getArtistsDir()
+        maxModVal = self.disc.getMaxModVal()
+                    
+        artistDBDir = self.disc.getArtistsDBDir()        
+        
+        dirVal = setDir(artistDir, str(modVal))
+        dirVal = setDir(dirVal, "credit")
+        files  = findExt(dirVal, ext='.p')
+        
+        if len(files) == 0:
+            return dbdata
+        print("\t","  Found {0} credit files for ModVal {1}".format(len(files), modVal))
+
+        dbname = setFile(artistDBDir, "{0}-DB.p".format(modVal))
+        retdbdata = False
+
+        if force is False:
+            if dbdata is None:
+                print("\t","  Loaded ", end="")
+                dbdata = getFile(dbname, version=3)
+                print("\t","{0} artist IDs.".format(len(dbdata)))
+            else:
+                retdbdata = True
+        else:
+            print("\t","Forcing Reloads of ModVal={0}".format(modVal))
+            print("\t","  Processing {0} files.".format(len(files)))
+            dbdata = {}
+
+        saveIt = 0
+        
+        nArtistMedia = {}
+        print("\t","{0} artist IDs.".format(len(dbdata)))
+        
+        for j,ifile in enumerate(files):
+            if force is True:
+                if j % 500 == 0:
+                    print("\t","\tProcessed {0}/{1} files.".format(j,len(files)))
+            if debug:
+                print("\t","{0}/{1} -- {2}.".format(j,len(files),ifile))
+            
+            info     = artistInfo.getData(ifile)
+            artistID = info.ID.ID
+            
+            currentMedia = sum([len(x) for x in dbdata[artistID].media.media.values()])
+            #print(artistID,'\t',sum([len(x) for x in dbdata[artistID].media.media.values()]),end="\t")
+
+            keys = list(set(list(info.media.media.keys()) + list(dbdata[artistID].media.media.keys())))
+            for k in keys:
+                v = info.media.media.get(k)
+                if v is None:
+                    continue
+                iVal  = {v2.code: v2 for v2 in v}
+                dVal  = dbdata[artistID].media.media.get(k)
+                if dVal is None:
+                    Tretval = iVal
+                    saveIt += len(iVal)
+                else:
+                    Tretval = {v2.code: v2 for v2 in dVal}
+                    Tretval.update(iVal)
+                    saveIt += len(iVal)
+                dbdata[artistID].media.media[k] = list(Tretval.values())
+                
+            if debug:
+                print("\t","File:",j," \tArtist:",artistID,'-->',currentMedia,'to',sum([len(x) for x in dbdata[artistID].media.media.values()]))
+
+                
+        if retdbdata is True:
+            return dbdata
+        #if saveAll is False:
+        #    return saveIt
+                
+                
+        if saveIt > 0:
+            savename = setFile(artistDBDir, "{0}-DB.p".format(modVal))     
+            print("\t","Saving {0} new (credit) artist media to {1}".format(saveIt, savename))
+            dbNumAlbums = sum([self.getArtistNumAlbums(artistData) for artistData in dbdata.values()])
+            print("\t","Saving {0} total (credit) artist media".format(dbNumAlbums))
+            saveFile(idata=dbdata, ifile=savename)
+            
+            self.createArtistModValMetadata(modVal=modVal, db=dbdata, debug=debug)
+            self.createArtistAlbumModValMetadata(modVal=modVal, db=dbdata, debug=debug)
+            
+        return saveIt
     
     
     
