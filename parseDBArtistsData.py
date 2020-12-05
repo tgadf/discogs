@@ -1,4 +1,5 @@
 from multiprocessing import Pool
+from ioUtils import getFile, saveFile
 import time
 
 class parseDBArtistsData:
@@ -8,7 +9,8 @@ class parseDBArtistsData:
         self.force = force
 
         self.primary = True
-        self.extra = True
+        self.extra   = False
+        self.credit  = False
 
         
     ####################################################################################################
@@ -17,16 +19,22 @@ class parseDBArtistsData:
     def parseArtistsDC(self, modVal):
         if self.primary is True:
             self.dbdata["Discogs"]["Artists"].parseArtistModValFiles(modVal, force=self.force)
-        #if extra is True:
-        #    self.dbdata["Discogs"]["Artists"].parseArtistModValExtraFiles(modVal, force=False)
+        if self.extra is True:
+            self.dbdata["Discogs"]["Artists"].parseArtistModValExtraFiles(modVal, force=False)
 
         
     ####################################################################################################
     ## AllMusic
     ####################################################################################################
     def parseArtistsAM(self, modVal):
-        self.dbdata["AllMusic"]["Artists"].parseArtistModValFiles(modVal, force=self.force)
-
+        if self.credit is True:
+            self.dbdata["AllMusic"]["Artists"].parseArtistModValCreditFiles(modVal, force=self.force)            
+        else:
+            self.dbdata["AllMusic"]["Artists"].parseArtistModValFiles(modVal, force=self.force)
+            if False:
+                ctds = getFile("creditToDownload.p")
+                ctds.update(self.dbdata["AllMusic"]["Artists"].creditToDownload)
+                saveFile(idata=ctds, ifile="creditToDownload.p")
         
     ####################################################################################################
     ## MusicBrainz
@@ -73,6 +81,7 @@ class parseDBArtistsData:
         #artsCL.parseArtistModValFiles(modVal, force=self.force)
 
     def parseArtistsMS(self, modVal):
+        self.dbdata["MusicStack"]["Artists"].parseArtistModValFiles(modVal, force=self.force)        
         return
         #artsMS.parseArtistFiles(force=self.force)
 
@@ -85,9 +94,32 @@ class parseDBArtistsData:
         print("Parsing {0} with {1} processes using [{2}] mod values.".format(db, nProcs, modVals))
         self.dbdata[db]["Artists"].parseArtistMetadataFiles()
 
-    def parse(self, db, nProcs=8, modVals=range(100), force=None, extra=True):
-        self.primary = not extra
+        
+    def parseDownloads(self, db):
+        if db == "RateYourMusic":
+            self.dbdata["RateYourMusic"]["Artists"].parseDownloadedFiles()
+        if db == "MusicStack":
+            self.dbdata["MusicStack"]["Artists"].parseDownloadedFiles()
+        
+        
+    def parse(self, db, nProcs=8, modVals=range(100), force=None, primary=True, extra=False, credit=False):
+        self.primary = primary
         self.extra   = extra
+        self.credit  = credit
+        if self.extra is True:
+            self.primary = False
+            self.credit  = False
+        elif self.credit is True:
+            self.primary = False
+            self.extra   = False
+        elif self.primary is True:
+            self.credit  = False
+            self.extra   = False
+
+        
+        print("DB: {0} --> Primary={1}   Extra={2}   Credit={3}".format(db, self.primary, self.extra, self.credit))
+        
+        
         if force is not None:
             self.force = force
         print("Parsing {0} with {1} processes using [{2}] mod values.".format(db, nProcs, modVals))
@@ -103,7 +135,6 @@ class parseDBArtistsData:
         elif db == "DatPiff":
             result = pool.map_async(self.parseArtistsDP, [None])
         elif db == "RateYourMusic":
-            dbdata["RateYourMusic"]["Artists"].parseDownloadedFiles()
             result = pool.map_async(self.parseArtistsRM, modVals)
         elif db == "LastFM":
             result = pool.map_async(self.parseArtistsLM, modVals)
@@ -114,7 +145,7 @@ class parseDBArtistsData:
             #result = pool.map_async(parseArtistsCL, range(56,72))
             #result = pool.map_async(parseArtistsCL, [55,25,26])
         elif db == "MusicStack":
-            result = pool.map_async(self.parseArtistsMS, [None])
+            result = pool.map_async(self.parseArtistsMS, modVals)
         elif db == "MetalStorm":
             result = pool.map_async(self.parseArtistsMT, modVals)
         else:

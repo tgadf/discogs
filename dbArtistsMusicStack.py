@@ -1,13 +1,14 @@
 from dbArtistsBase import dbArtistsBase
 from dbBase import dbBase
-from artistMS import artistMS
+from artistMD import artistMD
 from discogsUtils import musicstackUtils
 import urllib
 from urllib.parse import quote
 from webUtils import getHTML
-from fsUtils import isFile
+from fsUtils import isFile, setDir
+from ioUtils import getFile, saveFile
+from searchUtils import findPatternExt
 from hashlib import md5
-from ioUtils import saveFile
 
 
 
@@ -18,7 +19,7 @@ class dbArtistsMusicStack(dbArtistsBase):
     def __init__(self, debug=False):
         self.db     = "MusicStack"
         self.disc   = dbBase(self.db.lower())
-        self.artist = artistMS(self.disc)
+        self.artist = artistMD(self.disc)
         self.dutils = musicstackUtils()
         self.debug  = debug
         
@@ -41,77 +42,22 @@ class dbArtistsMusicStack(dbArtistsBase):
     
     ##################################################################################################################
     # Search Functions
-    ##################################################################################################################    def searchForArtist(self, artist=None):
-        files = findPatternExt("/Users/tgadfort/Downloads/", pattern="MusicStack", ext=".html")
-        for ifile in files:
-            fname  = getBaseFilename(ifile)
-            artist = fname[:fname.find(" Vinyl Records")]
-            self.parseSearchForArtist(artist=artist, ifile=ifile)
+    ##################################################################################################################
+    def searchForArtist(self, artist):
+        print("\n\n===================== Searching For {0} =====================".format(artist))
+        return
     
-    def parseSearchForArtist(self, artist, ifile):
-
-        ## Parse data
-        bsdata = getHTML(ifile)
-        
-        artistDB  = []
-
-        tables = bsdata.findAll("table")
-        if self.debug:
-            print("Found {0} tables".format(len(tables)))
-        for i,table in enumerate(tables):
-            trs = table.findAll("tr")
-            jj = 0
-            headers = None
-            values  = []
-            for j,tr in enumerate(trs):
-                tds  = tr.findAll("td")
-                #print('\t',len(tds))
-                #tds  = [list(td.strings) for td in tds]
-                if len(tds) == 8:
-                    if jj == 0:
-                        headers = tds
-                        if self.debug:
-                            print("  Found Header: {0}".format(headers))
-                    else:
-                        values.append(tds)
-                        if self.debug:
-                            print("  Found Value: {0}".format(tds))
-
-                    jj += 1
-
-            if headers is not None:
-                keys = []
-                for header in headers:
-                    b = header.find("b")
-                    if b is None:
-                        keys.append(str(len(keys)))
-                    else:
-                        txt = b.text.strip()
-                        keys.append(txt)
-                        
-                if self.debug:
-                    print("  Keys: {0}".format(keys))
-                    print("  Values: {0}".format(len(values)))
-
-
-                for value in values:
-                    value = [x for ix,x in enumerate(value) if keys[ix] in ["Artist", "Title"]]
-                    album = dict(zip(["Artist", "Title"], value))
-                    album["Artist"] = album["Artist"].text
-                    album["Album"]  = {"Name": album["Title"].text}
-                    try:
-                        album["Album"]["URL"] = album["Title"].find("a").attrs['href']
-                    except:
-                        album["Album"]["URL"] = None
-                    del album["Title"]
-                    artistDB.append({"ArtistName": album["Artist"], "AlbumName": album["Album"]["Name"], "AlbumURL": album["Album"]["URL"]})
-                break
-
-        artistID = self.dutils.getArtistID(artist)
-        page     = 1
-        savename = self.getArtistSavename(artistID, page)
-        while isFile(savename) and False:
-            page += 1
-            savename = self.getArtistSavename(artistID, page)
-        print("Saving {0} new artist media to {1}".format(len(artistDB), savename))
-        saveFile(idata=artistDB, ifile=savename)
+    
+    ##################################################################################################################
+    # Parse Downloaded Files
+    ##################################################################################################################
+    def parseDownloadedFiles(self):
+        artistDir = self.disc.getArtistsDir()
+        dataDir   = setDir(artistDir, "data")
+        files     = findPatternExt(dataDir, pattern="Discography and Albums", ext=".htm")
+        for ifile in files:
+            htmldata = getFile(ifile)
+            retval   = self.getData(ifile)
+            artistID = retval.ID.ID
+            savename = self.getArtistSavename(artistID)
+            saveFile(idata=htmldata, ifile=savename, debug=True)

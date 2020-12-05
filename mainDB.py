@@ -13,11 +13,8 @@ from dbArtistsRateYourMusic import dbArtistsRateYourMusic
 from dbArtistsMusicStack import dbArtistsMusicStack
 
 
-
-
-
 class mainDB:
-    def __init__(self, mdb=None, create=False, debug=False):
+    def __init__(self, mdb=None, create=False, debug=False, artistColumnName="CleanDiscArtist"):
         self.mdb    = None
         self.create = create
         self.debug  = debug
@@ -33,6 +30,8 @@ class mainDB:
 
         self.setDBBasic()
         #self.setDBs()
+        
+        self.artistColumnName = artistColumnName
         
         
     def getDBs(self):
@@ -95,10 +94,10 @@ class mainDB:
             
 
         
-    #################################
+    ###################################################################################################
     # Known DB Data
-    #################################
-    def setDBFull(self, db=None):
+    ###################################################################################################
+    def setDBArtists(self, db=None, recreate=True):
         if db is not None:
             dbs = [db]
         else:
@@ -106,13 +105,44 @@ class mainDB:
             
         for db in dbs:
             disc  = self.dbdata[db]["Disc"]
-            mymdb = masterdb(db, disc, force=self.create)
+            mymdb = masterdb(db, disc, force=self.create, artistColumnName=self.artistColumnName)
+            if self.create is True and recreate is True:
+                mymdb.createArtistIDMap()
+            self.slimArtistDB[db]       = mymdb.getSlimArtistDB()
+            
+            
+    def setDBAlbums(self, db=None):
+        if db is not None:
+            dbs = [db]
+        else:
+            dbs = self.dbdata.keys()
+            
+        for db in dbs:
+            disc  = self.dbdata[db]["Disc"]
+            mymdb = masterdb(db, disc, force=self.create, artistColumnName=self.artistColumnName)
+            if self.create is True:
+                mymdb.createArtistAlbumIDMap()
+            self.slimArtistAlbumsDB[db]      = mymdb.getSlimArtistAlbumsDB()
+            
+        
+    def setDBFull(self, db=None, doAlbums=True):
+        if db is not None:
+            dbs = [db]
+        else:
+            dbs = self.dbdata.keys()
+            
+        for db in dbs:
+            disc  = self.dbdata[db]["Disc"]
+            mymdb = masterdb(db, disc, force=self.create, artistColumnName=self.artistColumnName)
             if self.mdb is not None:
                 mymdb.setMyMusicDB(self.mdb)
             if self.create is True:
                 mymdb.createArtistIDMap()
 
             self.slimArtistDB[db]       = mymdb.getSlimArtistDB()
+            
+            if dbAlbums is False:
+                continue
             
             if self.create is True:
                 mymdb.createArtistAlbumIDMap()
@@ -121,9 +151,9 @@ class mainDB:
 
 
         
-    #################################
+    ###################################################################################################
     # Known DB Data
-    #################################
+    ###################################################################################################
     def setDBKnown(self, db=None):
         if db is not None:
             dbs = [db]
@@ -132,7 +162,7 @@ class mainDB:
             
         for db in dbs:
             disc  = self.dbdata[db]["Disc"]
-            mymdb = masterdb(db, disc, force=self.create)
+            mymdb = masterdb(db, disc, force=self.create, artistColumnName=self.artistColumnName)
             if self.mdb is not None:
                 mymdb.setMyMusicDB(self.mdb)
             if self.create is True:
@@ -168,13 +198,53 @@ class mainDB:
         return self.slimArtistAlbumsDB
     
     
+    
+    
+    
     ############################################################################################################
     # Helper Functions
     ############################################################################################################
+    def getArtistDBKeys(self, dbName):
+        masterDBDF = self.dbdata[dbName]["Disc"].getMasterSlimArtistDiscogsDB()
+        #masterDBDF = self.slimArtistDB[db]
+        artistDBKeys = list(zip(masterDBDF[self.artistColumnName], masterDBDF.index))
+        return artistDBKeys
+    
+    
+    def getArtistDBIDFromUtil(self, dbName, value):
+        artistID = self.dbdata[dbName]["Utils"].getArtistID(value)
+        return artistID
+        
+    
+    def getArtistDBNameFromID(self, dbName, artistID):
+        dbmap = self.dbdatamap.get(dbName)
+        if dbmap is None:
+            print("Could not find DB {0} in dbdatamap".format(dbName))
+            return None
+        artistName = dbmap.getArtistNameFromID(artistID)
+        return artistName
+    
+    def getArtistDBIDFromName(self, dbName, artistName):
+        dbmap = self.dbdatamap.get(dbName)
+        if dbmap is None:
+            print("Could not find DB {0} in dbdatamap".format(dbName))
+            return None
+        artistID = dbmap.getArtistIDFromName(artistName)
+        return artistID
+    
+    def getArtistDBAlbumsFromID(self, dbName, artistID):
+        dbmap = self.dbdatamap.get(dbName)
+        if dbmap is None:
+            print("Could not find DB {0} in dbdatamap".format(dbName))
+            return None
+        artistAlbums = dbmap.getArtistAlbums(artistID, flatten=True)
+        return artistAlbums
+        
+    
     def getBasicArtistInfo(self, name):
         retval = []
         for db,artistDB in self.knownSlimArtistDB.items():
-            result = artistDB[artistDB["DiscArtist"] == name].copy(deep=True)
+            result = artistDB[artistDB[self.finalArtistName] == name].copy(deep=True)
             if result.shape[0] == 0:
                 continue
             if result.shape[0] > 1:
@@ -192,7 +262,7 @@ class mainDB:
     def getFullArtistInfo(self, name):
         retval = []
         for db,artistDB in self.slimArtistDB.items():
-            result = artistDB[artistDB["DiscArtist"] == name].copy(deep=True)
+            result = artistDB[artistDB[self.finalArtistName] == name].copy(deep=True)
             if result.shape[0] == 0:
                 continue
             if result.shape[0] > 1:

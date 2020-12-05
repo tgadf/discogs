@@ -37,6 +37,8 @@ class dbArtistMap():
         self.artistIDToName = None
         self.artistNameToID = None
         
+        self.finalArtistName = "CleanDiscArtist"
+        
         self.setArtistIDMap()
         self.setAlbumIDMap()
         self.summary()
@@ -52,6 +54,7 @@ class dbArtistMap():
             self.setArtistIDMap()
         if self.artistNameToID.get(artistName) is None:
             print("Artist [{0}] is not a member of artistNameToID.".format(artistName))
+            return None
         artistID = self.artistNameToID[artistName]
         return artistID
 
@@ -60,6 +63,7 @@ class dbArtistMap():
             self.setArtistIDMap()
         if self.artistIDToName.get(artistID) is None:
             print("Artist ID [{0}] is not a member of artistIDToName.".format(artistID))
+            return None
         artistName = self.artistIDToName[artistID]
         return artistName
     
@@ -79,11 +83,11 @@ class dbArtistMap():
         else:
             self.discdf  = self.disc.getMasterSlimArtistDiscogsDB()
             
-        self.artists = [x for x in list(self.discdf["DiscArtist"]) if x is not None]
+        self.artists = [x for x in list(self.discdf[self.finalArtistName]) if x is not None]
         if self.debug:
             print("    Found {0} Artists in DB".format(len(self.artists)))
 
-        self.artistIDToName = self.discdf["DiscArtist"].to_dict()
+        self.artistIDToName = self.discdf[self.finalArtistName].to_dict()
         self.artistNameToID = {}
         if self.debug:
             print("    Found {0} ID -> Name entries".format(len(self.artistIDToName)))

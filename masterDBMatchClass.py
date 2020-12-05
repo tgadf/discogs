@@ -1,11 +1,14 @@
 from timeUtils import clock, elapsed
 from listUtils import getFlatList
-from pandas import Series
+from ioUtils import getFile
+from pandas import Series, DataFrame
 
 class masterDBMatchClass:
     def __init__(self, maindb, mdbmaps):
         self.maindb  = maindb
         self.mdbmaps = mdbmaps
+        
+        self.finalArtistName = maindb.artistColumnName
 
         print("Loading Artist Names")
         self.artistData  = {db: self.getArtistNameDB(db) for db in maindb.dbdata.keys()}        
@@ -25,34 +28,59 @@ class masterDBMatchClass:
                 
 
     def setDBMatchData(self, dbName, matchData):
+        print("  Setting matchData for {0}".format(dbName))
         self.matchData[dbName] = matchData
+        
+        
+    def getDF(self, dbName):                
+        matchData = self.getDBMatchData(dbName, returnData=True)
+        df = DataFrame({primaryKey: {"Artist": artistData["ArtistName"], "Albums": len(artistData["ArtistAlbums"])} for primaryKey,artistData in matchData.items()}).T        
+        return df
+    
+    
+    def getMasterDF(self, dbName):
+        df = self.getDF(dbName)
+        amDF = self.mdbmaps[dbName].getDF()
+        mergeDF = df.join(amDF).copy(deep=True)
+        mergeDF["DBMatches"][mergeDF["DBMatches"].isna()] = 0
+        mergeDF = mergeDF.sort_values("Albums", ascending=False)
+        return mergeDF
+    
         
     def getDBMatchData(self, dbName, returnData=True):
         if self.matchData.get(dbName) is not None:
             return self.matchData[dbName]
         print("Loading Artist Albums")
-        artistsDF = self.artistData[dbName]
-        albumsDF  = self.getArtistAlbumsDB(dbName)
+        try:
+            artistsDF = self.artistData[dbName]
+            albumsDF  = self.getArtistAlbumsDB(dbName)
+        except:
+            raise ValueError("Could not get artist/albums for DB {0} from [{1}]".format(dbName, list(self.artistData.keys())))
         
-        dbArtistAlbums = artistsDF[["DiscArtist"]].join(albumsDF)
+        dbArtistAlbums = artistsDF[[self.finalArtistName]].join(albumsDF)
         dbArtistAlbums["Albums"] = dbArtistAlbums["Albums"].apply(lambda x: getFlatList([albums.values() for media,albums in x.items()]))
-        matchData = {(dbArtistData["DiscArtist"], dbArtistID): dbArtistData["Albums"] for dbArtistID,dbArtistData in dbArtistAlbums.T.to_dict().items()}
+        
+        matchData = {self.mdbmaps[dbName].getPrimaryKey(artistName=dbArtistData[self.finalArtistName], artistID=dbArtistID): {"ArtistName": dbArtistData[self.finalArtistName], "ArtistAlbums": dbArtistData["Albums"]} for dbArtistID,dbArtistData in dbArtistAlbums.T.to_dict().items() if dbArtistID is not None and len(dbArtistData[self.finalArtistName]) > 0}
         self.setDBMatchData(dbName, matchData)
         if returnData:
             return matchData
         
         
     def getArtistNameFromID(self, db, dbID):
+        print("Do I call this also???")
+        1/0
         df  = self.artistData[db]
         adf = df[df.index == dbID]
         if adf.shape[0] == 1:
-            retval = list(adf["DiscArtist"])[0]
+            retval = list(adf[self.finalArtistName])[0]
             return retval
         else:
             return None
         
         
     def getDBPrimaryKeys(self, db):
+        print("Do I call this???")
+        1/0
         if self.matchData.get(db) is not None:
             matchData  = self.matchData[db]
         else:
@@ -61,37 +89,69 @@ class masterDBMatchClass:
         return dbPrimaryKeys
         
     
-    def getDataToMatch(self, db, maxValues=100, maxAlbums=100, sort=True):
+    def getDataToMatch(self, db, maxValues=100, maxAlbums=100, minAlbums=0, sort=True, useKnown=True, dbMatches=0, ignores=[]):
         if self.matchData.get(db) is not None:
             matchData  = self.matchData[db]
         else:
             matchData  = self.getDBMatchData(db)
-        nAlbums    = Series({primaryKey: len(albums) for primaryKey,albums in matchData.items()}).sort_values(ascending=False).to_dict()
+            
+        salbums    = Series({primaryKey: len(artistData["ArtistAlbums"]) for primaryKey,artistData in matchData.items()}).sort_values(ascending=False)
+        known = self.mdbmaps[db].getArtists()
+        mdDF = DataFrame(matchData).T
+        artistIgnores = getFlatList([getFile(x) for x in ignores])
+        print("Found {0} ignores".format(len(artistIgnores)))
+        
+        
+        nAlbums    = salbums.to_dict()
+        
         if sort is True:
             sortedKeys = nAlbums.keys()
         else:
             sortedKeys = matchData.keys()
         
-        toMatch = []
-        known   = 0
-        manyAlbums = 0
-        for primaryKey in sortedKeys:
-            albums = matchData[primaryKey]
-            if not self.mdbmaps[db].isKnownKey(primaryKey):
-                if maxValues is not None:
-                    if len(toMatch) >= maxValues:
-                        continue
-                if nAlbums[primaryKey] >= maxAlbums:
-                    manyAlbums += 1
-                    continue
-                toMatch.append([primaryKey[0],primaryKey[1],albums])
-            else:
-                known += 1
-                
-        print("ToMatch   -> {0}".format(len(toMatch)))
-        print("MaxAlbums -> {0}".format(manyAlbums))
-        print("Known     -> {0}".format(known))
-        print("Total     -> {0}".format(len(matchData)))
+        cuts = {"Total": salbums.shape[0]}
+        
+        togetSAlbums = salbums[salbums.index.isin(mdDF[~mdDF["ArtistName"].isin(artistIgnores)].index)]
+        cuts["After Ignores"] = togetSAlbums.shape[0]
+        
+        if useKnown is True:
+            togetSAlbums = togetSAlbums[~togetSAlbums.index.isin(known.keys())]
+            cuts["After Known"] = togetSAlbums.shape[0]
+        else:
+            mbDF = self.mdbmaps[db].getDF()
+            knownKeys = mbDF[mbDF.DBMatches == dbMatches].index
+            togetSAlbums = togetSAlbums[togetSAlbums.index.isin(knownKeys)]
+            cuts["After DB Matches"] = togetSAlbums.shape[0]
+                    
+        togetSAlbums = togetSAlbums[togetSAlbums < maxAlbums]
+        cuts["After MaxAlbums"] = togetSAlbums.shape[0]
+        
+        togetSAlbums = togetSAlbums[togetSAlbums >= minAlbums]
+        cuts["After MinAlbums"] = togetSAlbums.shape[0]
+        
+        togetSAlbums = togetSAlbums.head(maxValues)
+        cuts["After MaxValues"] = togetSAlbums.shape[0]
+        
+        if 1 == 0:
+            dbsToMatch = {}
+            for primaryKey in togetSAlbums.index:
+                dbs = [dbName for dbName,dbID in self.mdbmaps[db].getArtistDataByKey(primaryKey).getDict().items() if dbID is None]
+                dbs = list(set(dbs).difference(set(["DatPiff", "MetalStorm"])))
+                dbsToMatch[primaryKey] = dbs
+
+            def getMissing(x):
+                return list(x[x.isna()].index)
+                missing = self.mdbmaps[db].getDF().apply(getMissing, axis=1)
+        else:
+            dbsToMatch = {}
+
+        sMatchData = Series(matchData)
+        toMatch = sMatchData[sMatchData.index.isin(togetSAlbums.index)].to_dict()
+        toMatch = [[primaryKey, artistData, dbsToMatch.get(primaryKey)] for primaryKey, artistData in toMatch.items()]
+
+
+        for k,v in cuts.items():
+            print("{0: <20} -> {1}".format(k,v))
         return {db: toMatch}
     
     

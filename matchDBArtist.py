@@ -16,6 +16,12 @@ class matchClass:
             self.matchID    = None
             self.matchN     = None
             
+    def show(self):
+        if self.matchID is not None:
+            print("{0} is matched to {1}. Found {2} matches with a max score of {3}".format(self.artistName, self.matchID, self.matchN, self.matchScore))
+        else:
+            print("{0} is unmatched".format(self.artistName)) 
+            
         
 
 class matchDBArtist:
@@ -24,6 +30,13 @@ class matchDBArtist:
         self.dbaccess  = maindb.dbdata
         self.dbdatamap = maindb.dbdatamap
         self.dbs       = list(self.dbdatamap.keys())
+        
+        self.matchNumArtistName     = None
+        self.matchArtistNameCutoff  = None
+        self.matchArtistAlbumCutoff = None
+        self.matchNumArtistAlbums   = None
+        self.matchScore             = None
+        
         self.clean()
         self.setThresholds()
 
@@ -35,17 +48,25 @@ class matchDBArtist:
         self.artistID   = artistID
         self.artistAlbums = artistAlbums
         
-    def setThresholds(self, num=10, cutoff=0.7, matchReq=0.85):
-        self.num      = num
-        self.cutoff   = cutoff
-        self.matchReq = matchReq
+        
+    #############################################################################
+    # Matching Thresholds
+    #############################################################################
+    def setThresholds(self, matchNumArtistName=10, matchArtistNameCutoff=0.7, 
+                      matchNumArtistAlbums=2, matchArtistAlbumCutoff=0.9, matchScore=1.5):
+        self.matchNumArtistName     = matchNumArtistName
+        self.matchArtistNameCutoff  = matchArtistNameCutoff
+        self.matchNumArtistAlbums   = matchNumArtistAlbums
+        self.matchArtistAlbumCutoff = matchArtistAlbumCutoff
+        self.matchScore             = matchScore
         
 
     #############################################################################
     # Get List of Possible IDs for DBs
     #############################################################################
     def findPotentialArtistNameMatchesByDB(self, db):
-        artistIDs = self.dbdatamap[db].getArtistIDs(self.artistName, self.num, self.cutoff, debug=self.debug)
+        artistIDs = self.dbdatamap[db].getArtistIDs(self.artistName, self.matchNumArtistName,
+                                                    self.matchArtistNameCutoff, debug=self.debug)
         return artistIDs
     
     def findPotentialArtistNameMatches(self):
@@ -53,6 +74,27 @@ class matchDBArtist:
             print("  Getting DB Artist IDs for ArtistName: {0}".format(self.artistName))
         artistIDs = {db: self.findPotentialArtistNameMatchesByDB(db) for db in self.dbs}
         return artistIDs
+    
+    def findPotentialArtistNameMatchesWithoutAlbums(self):
+        ### Step 1: Get Artist IDs
+        artistIDs = self.findPotentialArtistNameMatches()
+        
+        ### Step 2: Get Match For Each Pair
+        dbMatches = {}
+        for db, artistDBIDPairs in artistIDs.items():
+            bestMatch = None
+            if len(artistDBIDPairs) == 1:
+                for artistDBName,artistDBIDs in artistDBIDPairs.items():
+                    if len(artistDBIDs) == 1:
+                        bestMatch = {"ID": artistDBIDs[0], "Matches": 0, "Score": 0}
+
+            if bestMatch is None:
+                mc = matchClass(self.artistID, self.artistName, db, None)
+            else:
+                mc = matchClass(self.artistID, self.artistName, db, bestMatch)
+            dbMatches[db] = mc
+        
+        return dbMatches
     
     
     
@@ -79,7 +121,7 @@ class matchDBArtist:
                 dbArtistAlbums = self.dbdatamap[db].getArtistAlbums(artistDBID, flatten=True)
                 
                 ### Step 2b: Match
-                ma = matchAlbums(cutoff=self.cutoff)
+                ma = matchAlbums(cutoff=self.matchArtistAlbumCutoff)
                 ma.match(self.artistAlbums, dbArtistAlbums)
                 dbMatches[artistDBID] = ma
                 
@@ -88,10 +130,11 @@ class matchDBArtist:
         ### Step 3: Find Best Match
         bestMatch = {"ID": None, "Matches": 0, "Score": 0.0}
         for artistDBID,ma in dbMatches.items():
-            if ma.near == 0:
+            if ma.near < self.matchNumArtistAlbums:
                 continue
-            if ma.score < self.matchReq:
+            if ma.score < self.matchScore:
                 continue
+                
             if ma.near > bestMatch["Matches"]:
                 bestMatch = {"ID": artistDBID, "Matches": ma.near, "Score": ma.score}
             elif ma.near == bestMatch["Matches"]:
@@ -110,4 +153,11 @@ class matchDBArtist:
         if self.debug:
             print("  Getting DB Artist IDs for ArtistName: {0}".format(self.artistName))
         artistIDs = {db: self.findPotentialArtistAlbumMatchesByDB(db) for db in self.dbs}
+        return artistIDs
+    
+    
+    def findPotentialArtistAlbumMatchesByDBList(self, dbs):
+        if self.debug:
+            print("  Getting DB Artist IDs for ArtistName: {0}".format(self.artistName))
+        artistIDs = {db: self.findPotentialArtistAlbumMatchesByDB(db) for db in dbs}
         return artistIDs

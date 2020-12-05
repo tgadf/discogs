@@ -96,13 +96,14 @@ class artistAMPageClass:
     
 
 class artistAMProfileClass:
-    def __init__(self, profile=None, aliases=None, members=None, sites=None, groups=None, variations=None, err=None):
+    def __init__(self, profile=None, aliases=None, members=None, sites=None, groups=None, search=None, variations=None, err=None):
         self.profile    = profile
         self.aliases    = aliases
         self.members    = members
         self.sites      = sites
         self.groups     = groups
         self.variations = variations
+        self.search     = search
         self.err        = err
         
     def get(self):
@@ -135,11 +136,12 @@ class artistAMDataClass:
     def show(self):
         print("AllMusic Artist Data Class")
         print("-------------------------")
-        print("Artist: {0}".format(self.artist.name))
-        print("URL:    {0}".format(self.url.url))
-        print("ID:     {0}".format(self.ID.ID))
-        print("Pages:  {0}".format(self.pages.get()))
-        print("Media:  {0}".format(self.mediaCounts.get()))
+        print("Artist:  {0}".format(self.artist.name))
+        print("URL:     {0}".format(self.url.url))
+        print("ID:      {0}".format(self.ID.ID))
+        print("Profile: {0}".format(self.profile.get()))
+        print("Pages:   {0}".format(self.pages.get()))
+        print("Media:   {0}".format(self.mediaCounts.get()))
         for mediaType,mediaTypeAlbums in self.media.media.items():
             print("   {0}".format(mediaType))
             for album in mediaTypeAlbums:
@@ -429,10 +431,23 @@ class artistAM(dbBase):
     #######################################################################################################################################
     def getartistAMProfile(self):       
         from json import loads
-        result = self.bsdata.find("section", {"class": "basic-info"})   
+        result = self.bsdata.find("section", {"class": "basic-info"})
         if result is None:
-            apc = artistAMProfileClass(err="No Profile")
+            try:
+                content = self.bsdata.find("meta", {"name": "title"})
+                searchTerm = content.attrs["content"]
+                searchTerm = searchTerm.replace("Artist Search for ", "")
+                searchTerm = searchTerm.replace(" | AllMusic", "")
+                searchTerm = searchTerm[1:-1]
+            except:
+                apc = artistAMProfileClass(err="No Profile")
+                return apc
+            
+            apc = artistAMProfileClass(search=searchTerm)
             return apc
+            
+            
+            
            
         data   = {}
        

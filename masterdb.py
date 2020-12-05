@@ -5,13 +5,21 @@ from difflib import SequenceMatcher
 from searchUtils import findPatternExt
 from fsUtils import setFile
 
+from masterArtistNameDB import masterArtistNameDB
+from multiArtist import multiartist
 
 class masterdb:
-    def __init__(self, db, disc, force=False, debug=False):
+    def __init__(self, db, disc, force=False, debug=False, artistColumnName="CleanDiscArtist"):
         self.db    = db
         self.disc  = disc
         self.debug = debug
         self.force = force
+        
+        self.manDB      = masterArtistNameDB("main")
+        self.mularts = multiartist(cutoff=0.9, discdata=None, exact=False)
+        self.mularts.setKnownMultiDelimArtists(["../multiartist/multiDelimArtists.p"])
+        
+        self.finalArtistName = artistColumnName
         
         self.mydb  = None
         
@@ -151,9 +159,9 @@ class masterdb:
             raise ValueError("Must set disc before calling this")
 
         try:
-            artistIDToName = self.disc["DiscArtist"].to_dict()
+            artistIDToName = self.disc[self.finalArtistName].to_dict()
         except:
-            raise ValueError("Could not find DiscArtist in columns {0}".format(disc.columns))
+            raise ValueError("Could not find {0} in columns {1}".format(self.finalArtistName, disc.columns))
 
         artistNameToID = {}
         print("Found {0} ID -> Name entries".format(len(artistIDToName)))
@@ -219,6 +227,10 @@ class masterdb:
             discdf["DiscArtist"] = discdf['DiscArtist'].apply(self.cleanMB)
             print("\tShape --> {0}".format(discdf.shape))
 
+        discdf["CleanDiscArtist"] = discdf['DiscArtist'].apply(self.manDB.renamed)
+            
+        discdf["MultiStatus"] = discdf['CleanDiscArtist'].apply(lambda x: len(self.mularts.getArtistNames(x)))
+            
         print("DataFrame Shape is {0}".format(discdf.shape))
         elapsed(start, cmt)
 

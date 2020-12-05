@@ -28,6 +28,8 @@ class dbArtistsBase():
         
         self.modVal = self.disc.getMaxModVal
         
+        self.creditToDownload = {}
+        
         self.artistIDtoRefData = None
             
     
@@ -60,10 +62,10 @@ class dbArtistsBase():
     ###############################################################################
     # Download Information
     ###############################################################################
-    def getArtistURL(self, artistRef, page=1, credit=False):
+    def getArtistURL(self, artistRef, page=1, credit=False, unofficial=False):
         raise ValueError("Override getArtistURL")
     
-    def getArtistSavename(self, discID, page=1, credit=False):
+    def getArtistSavename(self, discID, page=1, credit=False, unofficial=False):
         artistDir = self.disc.getArtistsDir()
         modValue  = self.dutils.getDiscIDHashMod(discID=discID, modval=self.disc.getMaxModVal())
         if modValue is not None:
@@ -73,6 +75,9 @@ class dbArtistsBase():
                 savename  = setFile(outdir, discID+"-{0}.p".format(page))
             elif credit is True:
                 outdir = mkSubDir(outdir, "credit")
+                savename  = setFile(outdir, discID+".p")
+            elif unofficial is True:
+                outdir = mkSubDir(outdir, "unofficial")
                 savename  = setFile(outdir, discID+".p")
             else:
                 savename  = setFile(outdir, discID+".p")
@@ -140,7 +145,20 @@ class dbArtistsBase():
         url      = self.getArtistURL(artistRef, credtit=True)
         savename = self.getArtistSavename(artistID, credit=True)
         if not isFile(savename) or force is True:
-            retval = self.downloadArtistURL(url=url, savename=savename, force=True, debug=True)
+            retval = self.downloadArtistURL(url=url, savename=savename, force=force)
+            return retval
+        return False
+    
+
+    def downloadArtistUnofficialURL(self, artistData, debug=False, force=False):
+        artistRef = artistData.url.url
+        artistID  = artistData.ID.ID
+        print("Downloading credit URL for ArtistID {0}".format(artistID))
+
+        url      = self.getArtistURL(artistRef, unofficial=True)
+        savename = self.getArtistSavename(artistID, unofficial=True)
+        if not isFile(savename) or force is True:
+            retval = self.downloadArtistURL(url=url, savename=savename, force=force)
             return retval
         return False
             
@@ -208,17 +226,12 @@ class dbArtistsBase():
         dbname = setFile(artistDBDir, "{0}-DB.p".format(modVal))
         retdbdata = False
 
-        if force is False:
-            if dbdata is None:
-                print("\t","  Loaded ", end="")
-                dbdata = getFile(dbname, version=3)
-                print("\t","{0} artist IDs.".format(len(dbdata)))
-            else:
-                retdbdata = True
+        if dbdata is None:
+            print("\t","  Loaded ", end="")
+            dbdata = getFile(dbname, version=3)
+            print("\t","{0} artist IDs.".format(len(dbdata)))
         else:
-            print("\t","Forcing Reloads of ModVal={0}".format(modVal))
-            print("\t","  Processing {0} files.".format(len(files)))
-            dbdata = {}
+            retdbdata = True
 
         saveIt = 0
         
@@ -235,10 +248,18 @@ class dbArtistsBase():
             info     = artistInfo.getData(ifile)
             artistID = info.ID.ID
             
-            currentMedia = sum([len(x) for x in dbdata[artistID].media.media.values()])
+            #currentMedia = sum([len(x) for x in dbdata[artistID].media.media.values()])
             #print(artistID,'\t',sum([len(x) for x in dbdata[artistID].media.media.values()]),end="\t")
 
-            keys = list(set(list(info.media.media.keys()) + list(dbdata[artistID].media.media.keys())))
+            currentKeys = []
+            if dbdata.get(artistID) is not None:
+                currentKeys = list(dbdata[artistID].media.media.keys())
+            else:
+                dbdata[artistID] = info
+                saveIt += 1
+                continue
+            
+            keys = list(set(list(info.media.media.keys()) + currentKeys))
             for k in keys:
                 v = info.media.media.get(k)
                 if v is None:
@@ -265,7 +286,8 @@ class dbArtistsBase():
                 
                 
         if saveIt > 0:
-            savename = setFile(artistDBDir, "{0}-DB.p".format(modVal))     
+            savename = setFile(artistDBDir, "{0}-DB.p".format(modVal))
+            print("\t","Saving {0} artists to {1}".format(len(dbdata), savename))
             print("\t","Saving {0} new (credit) artist media to {1}".format(saveIt, savename))
             dbNumAlbums = sum([self.getArtistNumAlbums(artistData) for artistData in dbdata.values()])
             print("\t","Saving {0} total (credit) artist media".format(dbNumAlbums))
@@ -421,10 +443,18 @@ class dbArtistsBase():
             isKnown  = dbdata.get(artistID)
             recent   = datetime.fromtimestamp(path.getctime(ifile))
             if isKnown is None or recent > lastModified or force is True:
-                saveIt += 1
                 info   = artistInfo.getData(ifile)
                 
                 if info.ID.ID != artistID:
+                    
+                    # Check Profile
+                    try:
+                        artistName = info.profile.search
+                        if artistName is not None:
+                            self.creditToDownload[artistID] = [artistName,self.getArtistSavename(artistID, credit=True)]
+                    except:
+                        pass
+                    
                     if debug is False:
                         continue
                     print("ID From Name: {0}".format(artistID))
@@ -435,6 +465,7 @@ class dbArtistsBase():
                     continue
                     #1/0
                 
+                saveIt += 1
                 dbdata[artistID] = info
 
                
@@ -444,6 +475,10 @@ class dbArtistsBase():
             dbdata = self.parseArtistModValExtraFiles(modVal, dbdata=dbdata, force=force, debug=debug)
             forceSave = True
             saveIt = len(dbdata)
+            
+         
+        if len(self.creditToDownload) > 0:
+            print("Found {0} artists that need new downloads.".format(len(self.creditToDownload)))
         
 
         if saveIt > 0 or forceSave is True:
@@ -554,10 +589,45 @@ class dbArtistsBase():
         else:
             print("No reason to save {0}".format(dbname))
 
+
             
+    def assertDBModValUnofficialData(self, modVal):
+
+        artistDBDir = self.disc.getArtistsDBDir()
+        dbdata  = self.disc.getArtistsDBModValData(modVal)
+        nerrs   = 0
+        
+        for artistID,artistData in dbdata.items():
+            mediaCounts = artistData.mediaCounts.counts
+            if mediaCounts.get("Unofficial") is not None:
+                artistRef = artistData.url.url
+                url      = self.getArtistURL(artistRef, unofficial=True)
+                savename = self.getArtistSavename(artistID, unofficial=True)
+                if not isFile(savename):
+                    self.downloadArtistURL(url=url, savename=savename, force=False)
+                    sleep(2)
+
+
+            
+    def assertDBModValCreditData(self, modVal):
+
+        artistDBDir = self.disc.getArtistsDBDir()
+        dbdata  = self.disc.getArtistsDBModValData(modVal)
+        nerrs   = 0
+        
+        for artistID,artistData in dbdata.items():
+            mediaCounts = artistData.mediaCounts.counts
+            if mediaCounts.get("Credits") is not None:
+                artistRef = artistData.url.url
+                url      = self.getArtistURL(artistRef, credit=True)
+                savename = self.getArtistSavename(artistID, credit=True)
+                if not isFile(savename):
+                    self.downloadArtistURL(url=url, savename=savename, force=False)
+                    sleep(2)
+                
     
     def assertDBModValExtraData(self, modVal):
-        
+
         artistDBDir = self.disc.getArtistsDBDir()
         dbdata  = self.disc.getArtistsDBModValData(modVal)
         nerrs   = 0

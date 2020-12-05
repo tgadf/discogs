@@ -1235,14 +1235,12 @@ class musicstackUtils:
         return baseURL
     
         
-    def getArtistID(self, url, debug=False):        
-        url = url.replace("https://", "")
+    def getArtistID(self, name, debug=False):        
         m = md5()
-        for val in reversed(url.split("/")):
+        for val in name.split(" "):
             m.update(val.encode('utf-8'))
         hashval = m.hexdigest()
-        discID  = str(int(hashval, 16) % int(1e14))
-            
+        discID  = str(int(hashval, 16) % int(1e8))
         return discID
 
     
@@ -1263,7 +1261,7 @@ class musicstackUtils:
         for val in reversed(name.split(" ")):
             m.update(val.encode('utf-8'))
         hashval = m.hexdigest()
-        discID  = str(int(hashval, 16) % int(1e14))
+        discID  = str(int(hashval, 16) % int(1e7))
             
         return discID
     
