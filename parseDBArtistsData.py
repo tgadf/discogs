@@ -18,9 +18,11 @@ class parseDBArtistsData:
     ####################################################################################################
     def parseArtistsDC(self, modVal):
         if self.primary is True:
-            self.dbdata["Discogs"]["Artists"].parseArtistModValFiles(modVal, force=self.force)
+            self.dbdata["Discogs"]["Artists"].parseArtistModValFiles(modVal, force=self.force, previousDays=self.previousDays)
         if self.extra is True:
             self.dbdata["Discogs"]["Artists"].parseArtistModValExtraFiles(modVal, force=False)
+        if self.credit is True:
+            self.dbdata["Discogs"]["Artists"].parseArtistModValCreditFiles(modVal, force=self.force)            
 
         
     ####################################################################################################
@@ -102,10 +104,13 @@ class parseDBArtistsData:
             self.dbdata["MusicStack"]["Artists"].parseDownloadedFiles()
         
         
-    def parse(self, db, nProcs=8, modVals=range(100), force=None, primary=True, extra=False, credit=False):
+    def parse(self, db, nProcs=8, modVals=range(100), previousDays=5, force=None, primary=True, extra=False, credit=False):
+        self.previousDays = previousDays
+
         self.primary = primary
         self.extra   = extra
         self.credit  = credit
+        
         if self.extra is True:
             self.primary = False
             self.credit  = False

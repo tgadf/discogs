@@ -1,7 +1,6 @@
 from dbArtistsBase import dbArtistsBase
 from dbBase import dbBase
 from artistAM import artistAM
-from artistAMCredit import artistAMCredit
 from discogsUtils import allmusicUtils
 import urllib
 from urllib.parse import quote
@@ -17,7 +16,6 @@ class dbArtistsAllMusic(dbArtistsBase):
         self.db     = "AllMusic"
         self.disc   = dbBase(self.db.lower())
         self.artist = artistAM(self.disc)
-        self.artistCredit = artistAMCredit(self.disc)
         self.dutils = allmusicUtils()
         self.debug  = debug
         super().__init__(self.db, self.disc, self.artist, self.dutils, debug=debug)

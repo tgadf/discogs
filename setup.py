@@ -13,7 +13,7 @@ class InstallWrapper(install):
     # Run this first so the install stops in case 
     # these fail otherwise the Python package is
     # successfully installed
-    self._copy_web_server_files()
+    #self._copy_web_server_files()
     # Run the standard PyPi copy
     install.run(self)
 
@@ -34,9 +34,14 @@ class InstallWrapper(install):
     
 setup(
   name = 'discogs',
-  py_modules = ['dbBase', 'dbArtistMap', 'discogsUtils', 'masterdb', 'mainDB', 'matchDBArtist', 'masterDBMatchClass', 'masterArtistNameDB'], #, 'artistAB', 'artistAM', 'artistCL', 'artistDC', 'artistDP', 'artistLM', 'artistMB', 'artistMS', 'artistMT', 'artistRC', 'artistRM', 'artistsMT'], #, 'dbArtistsBase', 'dbArtistsDiscogs', 'dbArtistsAllMusic', 'dbArtistsMusicBrainz', 'dbArtistsLastFM', 'dbArtistsRockCorner', 'dbArtistsDatPiff', 'dbArtistsAceBootlegs', 'dbArtistsCDandLP', 'dbArtistsRateYourMusic', 'dbArtistsMusicStack'],
+  py_modules = ['dbBase', 'dbArtistMap', 'discogsUtils', 'masterdb', 'mainDB', 'matchDBArtist', 'masterDBMatchClass',
+                'artistAB', 'artistAM', 'artistCL', 'artistDC', 'artistDP', 'artistLM',
+                'artistMB', 'artistMD', 'artistMS', 'artistMT', 'artistRC', 'artistRM', 
+                'dbArtistsAceBootlegs', 'dbArtistsAllMusic', 'dbArtistsBase', 'dbArtistsCDandLP',
+                'dbArtistsDatPiff', 'dbArtistsDiscogs', 'dbArtistsLastFM', 'dbArtistsMusicBrainz',
+                'dbArtistsMusicStack', 'dbArtistsRateYourMusic', 'dbArtistsRockCorner'],
   version = '0.0.1',
-  data_files = [(os.path.join(sys.prefix, 'discogs'), ['masterDBRenames.yaml', 'masterArtistNameDB.p'])],
+  data_files = [],
   description = 'A Python Wrapper for Discogs Data',
   long_description = open('README.md').read(),
   author = 'Thomas Gadfort',

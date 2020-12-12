@@ -4,6 +4,10 @@ from fileUtils import getBaseFilename
 from searchUtils import findExt
 import urllib
 from time import sleep, mktime, gmtime
+from os import path
+from datetime import datetime, timedelta
+
+
 
 
 class dbArtistsBase():
@@ -391,10 +395,40 @@ class dbArtistsBase():
 
     
     
-    def parseArtistModValFiles(self, modVal, force=False, debug=False, doExtra=False):        
-        from os import path
-        from datetime import datetime, timedelta
+    ##############################################################################################################
+    # Regular ModVal Files
+    ##############################################################################################################
+    def getArtistModValFiles(self, modVal, previousDays=5, force=False):
+        artistDir = self.disc.getArtistsDir()
+        maxModVal = self.disc.getMaxModVal()
+                    
+        artistDBDir = self.disc.getArtistsDBDir()        
+        
+        dirVal = setDir(artistDir, str(modVal))
+        files  = findExt(dirVal, ext='.p')
+        dbname = setFile(artistDBDir, "{0}-DB.p".format(modVal))
+        
+        now    = datetime.now()
+        if isFile(dbname):
+            lastModified = datetime.fromtimestamp(path.getmtime(dbname))
+            if force is True:
+                lastModified = None
+        else:
+            lastModified = None
 
+        newFiles = None
+        if lastModified is None:
+            newFiles = files
+            print("  ===> Parsing all {0} files for modval {1}".format(len(newFiles), modVal))
+        else:
+            numNew    = [ifile for ifile in files if (now-datetime.fromtimestamp(path.getmtime(ifile))).days < previousDays]
+            numRecent = [ifile for ifile in files if datetime.fromtimestamp(path.getmtime(ifile)) > lastModified]
+            newFiles  = list(set(numNew).union(set(numRecent)))
+            print("  ===> Found new {0} files to parse for modval {1}".format(len(newFiles), modVal))
+        return newFiles
+            
+    
+    def parseArtistModValFiles(self, modVal, previousDays=5, force=False, debug=False, doExtra=False):        
         print("-"*100)
         print("Parsing Artist Files For ModVal {0}".format(modVal))
         artistInfo = self.artist
@@ -405,68 +439,49 @@ class dbArtistsBase():
         artistDBDir = self.disc.getArtistsDBDir()        
         
         dirVal = setDir(artistDir, str(modVal))
-        files  = findExt(dirVal, ext='.p')
         dbname = setFile(artistDBDir, "{0}-DB.p".format(modVal))
 
         
-        
-        ### Check for recent files
-        if isFile(dbname):
-            lastModified = datetime.fromtimestamp(path.getmtime(dbname))
-            now    = datetime.now()            
-            if force is False:
-                numRecent = [ifile for ifile in files if datetime.fromtimestamp(path.getmtime(ifile)) > lastModified]
-                numNew    = [ifile for ifile in files if (now-datetime.fromtimestamp(path.getmtime(ifile))).days < 1]
-                if len(numRecent) == 0:
-                    print("  ===> Found {0} files, but there are no new files to parse so skipping.".format(len(files)))
-                    return 0
-                else:
-                    print("  ===> Found {0} files. There are {1} new files to parse.".format(len(files), len(numRecent)))
-        else:
-            force = True
-            lastModified = datetime.fromtimestamp(mktime(gmtime(0)))
-
-                
+        newFiles = self.getArtistModValFiles(modVal, previousDays=previousDays, force=force)
         if force is False:
             dbdata = getFile(dbname, version=3)
         else:
             print("Forcing Reloads of ModVal={0}".format(modVal))
-            print("  Processing {0} files.".format(len(files)))
+            print("  Processing {0} files.".format(len(newFiles)))
             dbdata = {}
 
+            
         saveIt = 0
-        for j,ifile in enumerate(files):
+        for j,ifile in enumerate(newFiles):
             if force is True:
-                if j % 500 == 0:
-                    print("\tProcessed {0}/{1} files.".format(j,len(files)))
+                if j % 100 == 0:
+                    print("\tProcessed {0}/{1} files.".format(j,len(newFiles)))
             artistID = getBaseFilename(ifile)
             isKnown  = dbdata.get(artistID)
-            recent   = datetime.fromtimestamp(path.getctime(ifile))
-            if isKnown is None or recent > lastModified or force is True:
-                info   = artistInfo.getData(ifile)
-                
-                if info.ID.ID != artistID:
-                    
-                    # Check Profile
-                    try:
-                        artistName = info.profile.search
-                        if artistName is not None:
-                            self.creditToDownload[artistID] = [artistName,self.getArtistSavename(artistID, credit=True)]
-                    except:
-                        pass
-                    
-                    if debug is False:
-                        continue
-                    print("ID From Name: {0}".format(artistID))
-                    print("ID From File: {0}".format(info.ID.ID))
+            info   = artistInfo.getData(ifile)
 
-                    print("File: {0}".format(ifile))
-                    print("Info: {0}".format(info.url.get()))
+            if info.ID.ID != artistID:
+
+                # Check Profile
+                try:
+                    artistName = info.profile.search
+                    if artistName is not None:
+                        self.creditToDownload[artistID] = [artistName,self.getArtistSavename(artistID, credit=True)]
+                except:
+                    pass
+
+                if debug is False:
                     continue
-                    #1/0
-                
-                saveIt += 1
-                dbdata[artistID] = info
+                print("ID From Name: {0}".format(artistID))
+                print("ID From File: {0}".format(info.ID.ID))
+
+                print("File: {0}".format(ifile))
+                print("Info: {0}".format(info.url.get()))
+                continue
+                #1/0
+
+            saveIt += 1
+            dbdata[artistID] = info
 
                
         forceSave = False

@@ -141,7 +141,7 @@ class mainDB:
 
             self.slimArtistDB[db]       = mymdb.getSlimArtistDB()
             
-            if dbAlbums is False:
+            if doAlbums is False:
                 continue
             
             if self.create is True:
